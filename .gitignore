@@ -11,6 +11,13 @@ dist-ssr/
 .env.*
 !.env.example
 
+# Lint / build cache
+.eslintcache
+*.tsbuildinfo
+
+.agents/
+skills-lock.json
+
 # Logs
 logs/
 *.log
