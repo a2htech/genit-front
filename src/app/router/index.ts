@@ -1,7 +1,10 @@
 import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
 
-import { etudiantRoutes } from '@/features/etudiant'
-import { ficheRoutes } from '@/features/fiche'
+import { academicYearRoutes, useContextStore } from '@/features/academic-year'
+import { decisionRoutes } from '@/features/decision'
+import { studentRoutes } from '@/features/student'
+import { teachingUnitRoutes } from '@/features/teaching-unit'
+import { scoreRoutes } from '@/features/score'
 
 const routes: RouteRecordRaw[] = [
   {
@@ -9,13 +12,33 @@ const routes: RouteRecordRaw[] = [
     name: 'dashboard',
     component: () => import('../pages/DashboardPage.vue'),
   },
-  ...etudiantRoutes,
-  ...ficheRoutes,
+  ...academicYearRoutes,
+  ...studentRoutes,
+  ...teachingUnitRoutes,
+  ...scoreRoutes,
+  ...decisionRoutes,
+  ...(import.meta.env.DEV
+    ? [
+        {
+          path: '/ds',
+          name: 'ds-preview',
+          component: () => import('../dev/DsPreviewPage.vue'),
+          meta: { requiresContext: false },
+        },
+      ]
+    : []),
 ]
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes,
+})
+
+router.beforeEach((to) => {
+  if (to.meta.requiresContext === false) return true
+  const context = useContextStore()
+  if (!context.hasContext) return { name: 'context-setup' }
+  return true
 })
 
 export default router
