@@ -20,6 +20,15 @@ export default defineConfigWithVueTs(
   ...pluginVue.configs['flat/essential'],
   vueTsConfigs.recommended,
 
+  {
+    name: 'app/shadcn-vue-generated',
+    files: ['src/design-system/ui/**/*.vue'],
+    rules: {
+      // shadcn-vue's own components (Button, Input, Card, …) are intentionally single-word.
+      'vue/multi-word-component-names': 'off',
+    },
+  },
+
   ...pluginOxlint.buildFromOxlintConfigFile('.oxlintrc.json'),
 
   skipFormatting,

@@ -1,0 +1,17 @@
+<script setup lang="ts">
+import type { HTMLAttributes } from 'vue'
+import { cn } from '@/shared/lib/utils'
+
+const props = defineProps<{
+  class?: HTMLAttributes['class']
+}>()
+</script>
+
+<template>
+  <th
+    data-slot="table-head"
+    :class="cn('h-11 px-3.5 text-left align-middle text-xs font-bold tracking-wide uppercase whitespace-nowrap [&:has([role=checkbox])]:pr-0', props.class)"
+  >
+    <slot />
+  </th>
+</template>
