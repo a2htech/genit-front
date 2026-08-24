@@ -1,16 +1,16 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
-import { basculerAnneeUniversitaire, fetchAnneesUniversitaires } from './academic-year.api'
+import { createAcademicYear, fetchCurrentAcademicYear } from './academic-year.api'
 
-export const anneesUniversitairesKey = ['annees-universitaires'] as const
+export const currentAcademicYearKey = ['academic-year', 'current'] as const
 
-export function useAnneesUniversitairesQuery() {
-  return useQuery({ queryKey: anneesUniversitairesKey, queryFn: fetchAnneesUniversitaires })
+export function useCurrentAcademicYearQuery() {
+  return useQuery({ queryKey: currentAcademicYearKey, queryFn: fetchCurrentAcademicYear })
 }
 
-export function useBasculerAnneeMutation() {
+export function useCreateAcademicYearMutation() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: basculerAnneeUniversitaire,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: anneesUniversitairesKey }),
+    mutationFn: createAcademicYear,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: currentAcademicYearKey }),
   })
 }

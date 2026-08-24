@@ -1,26 +1,22 @@
 import axios from 'axios'
 
-type AnneeProvider = () => number | null
+type TokenProvider = () => Promise<string | null>
 
-let getAnneeId: AnneeProvider = () => null
+let getToken: TokenProvider = () => Promise.resolve(null)
 
-/** Wired once by app/main.ts to the `context` store — client.ts must never import Pinia directly. */
-export function setAnneeProvider(provider: AnneeProvider): void {
-  getAnneeId = provider
+/** Wired once by app/main.ts to Clerk's useAuth().getToken — client.ts must never import Clerk directly. */
+export function setAuthTokenProvider(provider: TokenProvider): void {
+  getToken = provider
 }
 
 export const apiClient = axios.create({
   baseURL: import.meta.env.VITE_API_URL,
 })
 
-apiClient.interceptors.request.use((config) => {
-  const anneeId = getAnneeId()
-  if (!anneeId) return config
-
-  if (config.method === 'get' || config.method === 'delete') {
-    config.params = { annee_id: anneeId, ...config.params }
-  } else {
-    config.data = { annee_id: anneeId, ...config.data }
+apiClient.interceptors.request.use(async (config) => {
+  const token = await getToken()
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`
   }
   return config
 })

@@ -1,60 +1,56 @@
 import { computed } from 'vue'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import { useContextStore } from '@/features/academic-year'
-import {
-  createMatiere,
-  deleteMatiere,
-  fetchMatieres,
-  fetchUnitesEnseignement,
-  updateMatiere,
-} from './teaching-unit.api'
-import type { MatiereFormValues, MatiereUpdatePayload } from './teaching-unit.types'
+import { createSubject, deleteSubject, fetchTeachingUnits, updateSubject } from './teaching-unit.api'
+import type { SubjectFormValues, SubjectUpdatePayload } from './teaching-unit.types'
 
-export function useUnitesEnseignementQuery() {
+function teachingUnitsKey(level: string | null) {
+  return ['teaching-units', level] as const
+}
+
+export function useTeachingUnitsQuery() {
   const context = useContextStore()
-  const niveau = computed(() => context.niveau)
+  const level = computed(() => context.level)
   return useQuery({
-    queryKey: computed(() => ['unites-enseignement', niveau.value]),
-    queryFn: () => fetchUnitesEnseignement(niveau.value!),
-    enabled: computed(() => niveau.value !== null),
+    queryKey: computed(() => teachingUnitsKey(level.value)),
+    queryFn: () => fetchTeachingUnits(level.value!),
+    enabled: computed(() => level.value !== null),
   })
 }
 
-export function useMatieresQuery() {
-  const context = useContextStore()
-  const niveau = computed(() => context.niveau)
-  return useQuery({
-    queryKey: computed(() => ['matieres', niveau.value]),
-    queryFn: () => fetchMatieres(niveau.value!),
-    enabled: computed(() => niveau.value !== null),
-  })
+/** Les matières viennent nested dans TeachingUnitResource : pas de fetch /subjects séparé. */
+export function useSubjectsQuery() {
+  const { data: teachingUnits, isPending } = useTeachingUnitsQuery()
+  const data = computed(() => teachingUnits.value?.flatMap((u) => u.subjects))
+  return { data, isPending }
 }
 
-function useInvalidateMatieres() {
+function useInvalidateTeachingUnits() {
+  const context = useContextStore()
   const queryClient = useQueryClient()
-  return () => queryClient.invalidateQueries({ queryKey: ['matieres'] })
+  return () => queryClient.invalidateQueries({ queryKey: teachingUnitsKey(context.level) })
 }
 
-export function useCreateMatiereMutation() {
-  const invalidate = useInvalidateMatieres()
+export function useCreateSubjectMutation() {
+  const invalidate = useInvalidateTeachingUnits()
   return useMutation({
-    mutationFn: (payload: MatiereFormValues) => createMatiere(payload),
+    mutationFn: (payload: SubjectFormValues) => createSubject(payload),
     onSuccess: invalidate,
   })
 }
 
-export function useUpdateMatiereMutation() {
-  const invalidate = useInvalidateMatieres()
+export function useUpdateSubjectMutation() {
+  const invalidate = useInvalidateTeachingUnits()
   return useMutation({
-    mutationFn: ({ id, payload }: { id: string; payload: MatiereUpdatePayload }) => updateMatiere(id, payload),
+    mutationFn: ({ id, payload }: { id: number; payload: SubjectUpdatePayload }) => updateSubject(id, payload),
     onSuccess: invalidate,
   })
 }
 
-export function useDeleteMatiereMutation() {
-  const invalidate = useInvalidateMatieres()
+export function useDeleteSubjectMutation() {
+  const invalidate = useInvalidateTeachingUnits()
   return useMutation({
-    mutationFn: (id: string) => deleteMatiere(id),
+    mutationFn: (id: number) => deleteSubject(id),
     onSuccess: invalidate,
   })
 }

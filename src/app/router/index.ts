@@ -2,7 +2,7 @@ import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
 
 import { academicYearRoutes, useContextStore } from '@/features/academic-year'
 import { authRoutes, useAuthStore } from '@/features/auth'
-import { decisionRoutes } from '@/features/decision'
+import { transcriptRoutes } from '@/features/transcript'
 import { studentRoutes } from '@/features/student'
 import { teachingUnitRoutes } from '@/features/teaching-unit'
 import { scoreRoutes } from '@/features/score'
@@ -18,7 +18,7 @@ const routes: RouteRecordRaw[] = [
   ...studentRoutes,
   ...teachingUnitRoutes,
   ...scoreRoutes,
-  ...decisionRoutes,
+  ...transcriptRoutes,
   ...(import.meta.env.DEV
     ? [
         {

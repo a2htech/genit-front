@@ -1,69 +1,50 @@
-import { type Ref, computed } from 'vue'
+import { computed } from 'vue'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import { useContextStore } from '@/features/academic-year'
-import { createEtudiant, deleteEtudiant, fetchEtudiants, updateEtudiant } from './student.api'
-import type { EtudiantFormValues } from './student.types'
+import { createStudent, deleteStudent, fetchStudents, updateStudent } from './student.api'
+import type { StudentFormValues, StudentUpdatePayload } from './student.types'
 
-const PAGE_SIZE = 5
+function studentsKey(level: string | null) {
+  return ['students', level] as const
+}
 
-export function useEtudiantsQuery(search: Ref<string>, page: Ref<number>) {
+/** Un seul fetch (paginé jusqu'au bout) par niveau ; recherche/pagination faites ensuite côté client. */
+export function useStudentsQuery() {
   const context = useContextStore()
-  const niveau = computed(() => context.niveau)
+  const level = computed(() => context.level)
   return useQuery({
-    queryKey: computed(() => ['etudiants', niveau.value, search.value, page.value]),
-    queryFn: () =>
-      fetchEtudiants({ niveau: niveau.value!, search: search.value, page: page.value, perPage: PAGE_SIZE }),
-    enabled: computed(() => niveau.value !== null),
-    placeholderData: (previous) => previous,
+    queryKey: computed(() => studentsKey(level.value)),
+    queryFn: () => fetchStudents(level.value!),
+    enabled: computed(() => level.value !== null),
   })
 }
 
-export function useEtudiantsCountQuery() {
+function useInvalidateStudents() {
   const context = useContextStore()
-  const niveau = computed(() => context.niveau)
-  return useQuery({
-    queryKey: computed(() => ['etudiants', 'count', niveau.value]),
-    queryFn: () => fetchEtudiants({ niveau: niveau.value!, search: '', page: 1, perPage: 1 }),
-    enabled: computed(() => niveau.value !== null),
-    select: (page) => page.meta.total,
-  })
-}
-
-export function useEtudiantsRechercheQuery(search: Ref<string>) {
-  const context = useContextStore()
-  const niveau = computed(() => context.niveau)
-  return useQuery({
-    queryKey: computed(() => ['etudiants', 'recherche', niveau.value, search.value]),
-    queryFn: () => fetchEtudiants({ niveau: niveau.value!, search: search.value, page: 1, perPage: 5 }),
-    enabled: computed(() => niveau.value !== null && search.value.trim().length > 0),
-  })
-}
-
-function useInvalidateEtudiants() {
   const queryClient = useQueryClient()
-  return () => queryClient.invalidateQueries({ queryKey: ['etudiants'] })
+  return () => queryClient.invalidateQueries({ queryKey: studentsKey(context.level) })
 }
 
-export function useCreateEtudiantMutation() {
-  const invalidate = useInvalidateEtudiants()
+export function useCreateStudentMutation() {
+  const invalidate = useInvalidateStudents()
   return useMutation({
-    mutationFn: (payload: EtudiantFormValues) => createEtudiant(payload),
+    mutationFn: (payload: StudentFormValues) => createStudent(payload),
     onSuccess: invalidate,
   })
 }
 
-export function useUpdateEtudiantMutation() {
-  const invalidate = useInvalidateEtudiants()
+export function useUpdateStudentMutation() {
+  const invalidate = useInvalidateStudents()
   return useMutation({
-    mutationFn: ({ id, payload }: { id: string; payload: EtudiantFormValues }) => updateEtudiant(id, payload),
+    mutationFn: ({ id, payload }: { id: number; payload: StudentUpdatePayload }) => updateStudent(id, payload),
     onSuccess: invalidate,
   })
 }
 
-export function useDeleteEtudiantMutation() {
-  const invalidate = useInvalidateEtudiants()
+export function useDeleteStudentMutation() {
+  const invalidate = useInvalidateStudents()
   return useMutation({
-    mutationFn: (id: string) => deleteEtudiant(id),
+    mutationFn: (id: number) => deleteStudent(id),
     onSuccess: invalidate,
   })
 }

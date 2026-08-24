@@ -1,29 +1,26 @@
 import { apiClient } from '@/shared/api/client'
-import type { Niveau } from '@/features/academic-year'
-import type { Matiere, MatiereFormValues, MatiereUpdatePayload, UniteEnseignement } from './teaching-unit.types'
+import { fetchAllPages, type LaravelPage } from '@/shared/api/pagination'
+import type { Level } from '@/features/academic-year'
+import type { Subject, SubjectFormValues, SubjectUpdatePayload, TeachingUnit } from './teaching-unit.types'
 
-export async function fetchUnitesEnseignement(niveau: Niveau): Promise<UniteEnseignement[]> {
-  const { data } = await apiClient.get<UniteEnseignement[]>('/unites-enseignement', {
-    params: { niveau },
-  })
-  return data
+export async function fetchTeachingUnits(level: Level): Promise<TeachingUnit[]> {
+  return fetchAllPages((page) =>
+    apiClient
+      .get<LaravelPage<TeachingUnit>>('/teaching-units', { params: { class: level, page } })
+      .then((r) => r.data),
+  )
 }
 
-export async function fetchMatieres(niveau: Niveau): Promise<Matiere[]> {
-  const { data } = await apiClient.get<Matiere[]>('/matieres', { params: { niveau } })
-  return data
+export async function createSubject(payload: SubjectFormValues): Promise<Subject> {
+  const { data } = await apiClient.post<{ data: Subject }>('/subjects', payload)
+  return data.data
 }
 
-export async function createMatiere(payload: MatiereFormValues): Promise<Matiere> {
-  const { data } = await apiClient.post<Matiere>('/matieres', payload)
-  return data
+export async function updateSubject(id: number, payload: SubjectUpdatePayload): Promise<Subject> {
+  const { data } = await apiClient.put<{ data: Subject }>(`/subjects/${id}`, payload)
+  return data.data
 }
 
-export async function updateMatiere(id: string, payload: MatiereUpdatePayload): Promise<Matiere> {
-  const { data } = await apiClient.put<Matiere>(`/matieres/${id}`, payload)
-  return data
-}
-
-export async function deleteMatiere(id: string): Promise<void> {
-  await apiClient.delete(`/matieres/${id}`)
+export async function deleteSubject(id: number): Promise<void> {
+  await apiClient.delete(`/subjects/${id}`)
 }

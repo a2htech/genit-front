@@ -1,54 +1,37 @@
 import { defineStore } from 'pinia'
 import { computed, ref, watch } from 'vue'
-import type { Niveau } from './academic-year.types'
+import type { Level } from './academic-year.types'
 
 const STORAGE_KEY = 'genit:context'
 
-interface PersistedContexte {
-  annee: number | null
-  niveau: Niveau | null
-}
-
-function loadPersisted(): PersistedContexte {
+function loadPersistedLevel(): Level | null {
   const raw = localStorage.getItem(STORAGE_KEY)
-  if (!raw) return { annee: null, niveau: null }
+  if (!raw) return null
   try {
-    const parsed = JSON.parse(raw) as Partial<PersistedContexte>
-    return {
-      annee: typeof parsed.annee === 'number' ? parsed.annee : null,
-      niveau: parsed.niveau ?? null,
-    }
+    const parsed = JSON.parse(raw) as { level?: Level | null }
+    return parsed.level ?? null
   } catch {
-    return { annee: null, niveau: null }
+    return null
   }
 }
 
+/** Le niveau consulté est une préférence d'affichage locale ; l'année universitaire est un état serveur global (voir academic-year.queries). */
 export const useContextStore = defineStore('context', () => {
-  const initial = loadPersisted()
-  const annee = ref<number | null>(initial.annee)
-  const niveau = ref<Niveau | null>(initial.niveau)
+  const level = ref<Level | null>(loadPersistedLevel())
 
-  const hasContext = computed(() => annee.value !== null && niveau.value !== null)
-  /** "2025-2026" à partir de la seule année stockée (sa fin, ex. 2026). */
-  const anneeLibelle = computed(() => (annee.value !== null ? `${annee.value - 1}-${annee.value}` : null))
+  const hasContext = computed(() => level.value !== null)
 
-  function setAnnee(value: number): void {
-    annee.value = value
-  }
-
-  function setNiveau(value: Niveau): void {
-    niveau.value = value
+  function setLevel(value: Level): void {
+    level.value = value
   }
 
   function reset(): void {
-    annee.value = null
-    niveau.value = null
+    level.value = null
   }
 
-  watch([annee, niveau], () => {
-    const payload: PersistedContexte = { annee: annee.value, niveau: niveau.value }
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(payload))
+  watch(level, () => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ level: level.value }))
   })
 
-  return { annee, niveau, hasContext, anneeLibelle, setAnnee, setNiveau, reset }
+  return { level, hasContext, setLevel, reset }
 })

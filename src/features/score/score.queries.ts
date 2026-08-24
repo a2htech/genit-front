@@ -1,56 +1,46 @@
 import { type Ref, computed } from 'vue'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
-import { useContextStore } from '@/features/academic-year'
-import { fetchNotes, fetchSaisieProgress, upsertNote, validerSaisie, type UpsertNotePayload } from './score.api'
-import type { NoteRow, SessionExamen } from './score.types'
+import { fetchScores, storeScoresForSubject, updateScore, type StoreScoresPayload } from './score.api'
+import type { ExamSession } from './score.types'
 
-function notesKey(niveau: string | null, matiereId: string | null, session: SessionExamen) {
-  return ['notes', niveau, matiereId, session] as const
+function scoresKey(subjectId: number | null, session: ExamSession, classYear: number | null) {
+  return ['scores', subjectId, session, classYear] as const
 }
 
-export function useNotesQuery(matiereId: Ref<string | null>, session: Ref<SessionExamen>) {
-  const context = useContextStore()
-  const niveau = computed(() => context.niveau)
+export function useScoresQuery(
+  subjectId: Ref<number | null>,
+  session: Ref<ExamSession>,
+  classYear: Ref<number | null>,
+) {
   return useQuery({
-    queryKey: computed(() => notesKey(niveau.value, matiereId.value, session.value)),
-    queryFn: () => fetchNotes({ matiereId: matiereId.value!, session: session.value, niveau: niveau.value! }),
-    enabled: computed(() => niveau.value !== null && matiereId.value !== null),
+    queryKey: computed(() => scoresKey(subjectId.value, session.value, classYear.value)),
+    queryFn: () => fetchScores({ subjectId: subjectId.value!, session: session.value, classYear: classYear.value! }),
+    enabled: computed(() => subjectId.value !== null && classYear.value !== null),
   })
 }
 
-export function useUpsertNoteMutation(matiereId: Ref<string | null>, session: Ref<SessionExamen>) {
-  const context = useContextStore()
+export function useStoreScoresMutation(
+  subjectId: Ref<number | null>,
+  session: Ref<ExamSession>,
+  classYear: Ref<number | null>,
+) {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: (payload: UpsertNotePayload) => upsertNote(payload),
-    onMutate: (payload) => {
-      const key = notesKey(context.niveau, matiereId.value, session.value)
-      queryClient.setQueryData<NoteRow[]>(key, (rows) =>
-        rows?.map((row) => (row.etudiantId === payload.etudiantId ? { ...row, valeur: payload.valeur } : row)),
-      )
-    },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: notesKey(context.niveau, matiereId.value, session.value) })
-      queryClient.invalidateQueries({ queryKey: ['dashboard'] })
-    },
+    mutationFn: (payload: StoreScoresPayload) => storeScoresForSubject(payload),
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: scoresKey(subjectId.value, session.value, classYear.value) }),
   })
 }
 
-export function useSaisieProgressQuery() {
-  const context = useContextStore()
-  const niveau = computed(() => context.niveau)
-  return useQuery({
-    queryKey: computed(() => ['dashboard', 'saisie-progression', niveau.value]),
-    queryFn: () => fetchSaisieProgress(niveau.value!),
-    enabled: computed(() => niveau.value !== null),
-  })
-}
-
-export function useValiderSaisieMutation() {
+export function useUpdateScoreMutation(
+  subjectId: Ref<number | null>,
+  session: Ref<ExamSession>,
+  classYear: Ref<number | null>,
+) {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: ({ matiereId, session }: { matiereId: string; session: SessionExamen }) =>
-      validerSaisie(matiereId, session),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['dashboard'] }),
+    mutationFn: ({ id, score }: { id: number; score: number | null }) => updateScore(id, score),
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: scoresKey(subjectId.value, session.value, classYear.value) }),
   })
 }

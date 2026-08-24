@@ -1,4 +1,5 @@
 export { academicYearRoutes } from './academic-year.routes'
 export { useContextStore } from './context.store'
-export { NIVEAUX } from './academic-year.types'
-export type { Niveau, AnneeUniversitaire } from './academic-year.types'
+export { useCurrentAcademicYearQuery } from './academic-year.queries'
+export { LEVELS } from './academic-year.types'
+export type { Level, AcademicYear } from './academic-year.types'

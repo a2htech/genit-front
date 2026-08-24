@@ -1,31 +1,47 @@
-import type { Niveau } from '@/features/academic-year'
+import type { Level } from '@/features/academic-year'
 
-export interface UniteEnseignement {
-  id: string
-  code: string
-  intitule: string
-  credits: number
-  semestre: 'S1' | 'S2'
-  niveau: Niveau
+export interface Subject {
+  id: number
+  name: string
+  credit: number
+  hourly_vol: number
+  teaching_unit_id: number
+  created_at: string | null
+  updated_at: string | null
 }
 
-export interface Matiere {
-  id: string
+export interface TeachingUnit {
+  id: number
+  name: string
   code: string
-  intitule: string
-  coefficient: number
-  ueId: string | null
-  enseignant: string
-  /** Résolu côté back à la création à partir de l'UE choisie ; ne bouge pas si la matière est détachée. */
-  niveau: Niveau
+  semester: number
+  class: Level
+  created_at: string | null
+  updated_at: string | null
+  subjects: Subject[]
 }
 
-export interface MatiereFormValues {
-  code: string
-  intitule: string
-  coefficient: number
-  ueId: string
-  enseignant: string
+export interface SubjectFormValues {
+  name: string
+  credit: number
+  hourly_vol: number
+  teaching_unit_id: number
 }
 
-export type MatiereUpdatePayload = Partial<Omit<MatiereFormValues, 'ueId'>> & { ueId?: string | null }
+export type SubjectUpdatePayload = Partial<SubjectFormValues>
+
+/** SemesterEnum::allowedSemesters côté back : le semestre est numéroté sur tout le cursus (1..10), pas juste S1/S2. */
+export function semestersForLevel(level: Level): [number, number] {
+  switch (level) {
+    case 'L1':
+      return [1, 2]
+    case 'L2':
+      return [3, 4]
+    case 'L3':
+      return [5, 6]
+    case 'M1':
+      return [7, 8]
+    case 'M2':
+      return [9, 10]
+  }
+}

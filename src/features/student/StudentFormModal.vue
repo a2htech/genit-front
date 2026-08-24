@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { reactive, watch } from 'vue'
+import { reactive, ref, watch } from 'vue'
 import { Button } from '@/design-system/ui/button'
 import {
   Dialog,
@@ -12,27 +12,37 @@ import {
 import { Field, FieldGroup, FieldLabel } from '@/design-system/ui/field'
 import { Input } from '@/design-system/ui/input'
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from '@/design-system/ui/select'
-import { NIVEAUX } from '@/features/academic-year'
-import type { EtudiantFormValues, StatutEtudiant } from './student.types'
+import { Toggle } from '@/design-system/ui/toggle'
+import type { StudentFormValues, Sex } from './student.types'
 
 const props = defineProps<{
   open: boolean
   title: string
-  initialValues: EtudiantFormValues
+  initialValues: StudentFormValues
+  editing: boolean
+  initialRegistered: boolean
   saving?: boolean
 }>()
 
-const emit = defineEmits<{ save: [values: EtudiantFormValues]; 'update:open': [open: boolean] }>()
+const emit = defineEmits<{
+  save: [values: StudentFormValues, registered: boolean]
+  'update:open': [open: boolean]
+}>()
 
-const statutOptions: { value: StatutEtudiant; label: string }[] = [
-  { value: 'Inscrit', label: 'Inscrit' },
-  { value: 'Non inscrit', label: 'Non inscrit' },
+const sexOptions: { value: Sex; label: string }[] = [
+  { value: 'M', label: 'Masculin' },
+  { value: 'F', label: 'Féminin' },
 ]
 
-const form = reactive<EtudiantFormValues>({ ...props.initialValues })
+const form = reactive<StudentFormValues>({ ...props.initialValues })
+const registered = ref(props.initialRegistered)
 watch(
   () => props.initialValues,
   (v) => Object.assign(form, v),
+)
+watch(
+  () => props.initialRegistered,
+  (v) => (registered.value = v),
 )
 </script>
 
@@ -46,28 +56,20 @@ watch(
 
       <FieldGroup>
         <Field>
-          <FieldLabel>Matricule</FieldLabel>
-          <Input v-model="form.matricule" />
-        </Field>
-        <Field>
           <FieldLabel>Nom</FieldLabel>
-          <Input v-model="form.nom" />
+          <Input v-model="form.last_name" />
         </Field>
         <Field>
           <FieldLabel>Prénom</FieldLabel>
-          <Input v-model="form.prenom" />
+          <Input v-model="form.first_name" />
         </Field>
         <Field>
-          <FieldLabel>Date de naissance</FieldLabel>
-          <Input v-model="form.dateNaissance" placeholder="JJ/MM/AAAA" />
-        </Field>
-        <Field>
-          <FieldLabel>Statut</FieldLabel>
-          <Select v-model="form.statut">
+          <FieldLabel>Sexe</FieldLabel>
+          <Select v-model="form.sex">
             <SelectTrigger class="w-full"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectGroup>
-                <SelectItem v-for="o in statutOptions" :key="o.value" :value="o.value">
+                <SelectItem v-for="o in sexOptions" :key="o.value" :value="o.value">
                   {{ o.label }}
                 </SelectItem>
               </SelectGroup>
@@ -75,17 +77,26 @@ watch(
           </Select>
         </Field>
         <Field>
-          <FieldLabel>Niveau</FieldLabel>
-          <Select v-model="form.niveau">
-            <SelectTrigger class="w-full"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectGroup>
-                <SelectItem v-for="n in NIVEAUX" :key="n.value" :value="n.value">
-                  {{ n.value }} — {{ n.label }}
-                </SelectItem>
-              </SelectGroup>
-            </SelectContent>
-          </Select>
+          <FieldLabel>Date de naissance</FieldLabel>
+          <Input v-model="form.birthday" type="date" />
+        </Field>
+        <Field>
+          <FieldLabel>Lieu de naissance</FieldLabel>
+          <Input v-model="form.birthplace" />
+        </Field>
+        <Field>
+          <FieldLabel>Adresse</FieldLabel>
+          <Input v-model="form.address" />
+        </Field>
+        <Field>
+          <FieldLabel>Téléphone</FieldLabel>
+          <Input v-model="form.phone" />
+        </Field>
+        <Field v-if="editing">
+          <FieldLabel>Inscription</FieldLabel>
+          <Toggle :model-value="registered" @update:model-value="(v) => (registered = !!v)">
+            {{ registered ? 'Inscrit' : 'Non inscrit' }}
+          </Toggle>
         </Field>
       </FieldGroup>
 
@@ -93,7 +104,7 @@ watch(
         <Button variant="secondary" emphasis="compact" @click="emit('update:open', false)">
           Annuler
         </Button>
-        <Button :disabled="saving" @click="emit('save', { ...form })">Enregistrer</Button>
+        <Button :disabled="saving" @click="emit('save', { ...form }, registered)">Enregistrer</Button>
       </DialogFooter>
     </DialogContent>
   </Dialog>

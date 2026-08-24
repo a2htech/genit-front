@@ -10,11 +10,12 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/design-system/ui/dropdown-menu'
-import { NIVEAUX, useContextStore, type Niveau } from '@/features/academic-year'
+import { LEVELS, useContextStore, useCurrentAcademicYearQuery, type Level } from '@/features/academic-year'
 
 const route = useRoute()
 const router = useRouter()
 const context = useContextStore()
+const { data: currentYear } = useCurrentAcademicYearQuery()
 
 const showChrome = computed(() => route.meta.requiresContext !== false)
 
@@ -26,11 +27,11 @@ const navItems: { name: string; label: string }[] = [
   { name: 'academic-year', label: 'Année' },
 ]
 
-function selectNiveau(n: Niveau) {
-  context.setNiveau(n)
+function selectLevel(n: Level) {
+  context.setLevel(n)
 }
 
-function changerDeContexte() {
+function changeContext() {
   context.reset()
   router.push({ name: 'context-setup' })
 }
@@ -59,19 +60,19 @@ function changerDeContexte() {
 
       <div class="flex flex-wrap items-center gap-2.5 border-b-2 border-border bg-background px-6 py-2.5">
         <div class="border-2 border-border bg-card px-3.5 py-2 text-sm font-bold">
-          📅 {{ context.anneeLibelle }}
+          📅 {{ currentYear?.year }}
         </div>
 
         <DropdownMenu>
           <DropdownMenuTrigger class="flex items-center gap-1 border-2 border-border bg-card px-3.5 py-2 text-sm font-bold">
-            <GraduationCapIcon class="size-4" /> {{ context.niveau }} <ChevronDownIcon class="size-3.5" />
+            <GraduationCapIcon class="size-4" /> {{ context.level }} <ChevronDownIcon class="size-3.5" />
           </DropdownMenuTrigger>
           <DropdownMenuContent>
             <DropdownMenuGroup>
               <DropdownMenuItem
-                v-for="n in NIVEAUX"
+                v-for="n in LEVELS"
                 :key="n.value"
-                @select="selectNiveau(n.value)"
+                @select="selectLevel(n.value)"
               >
                 {{ n.value }} — {{ n.label }}
               </DropdownMenuItem>
@@ -87,7 +88,7 @@ function changerDeContexte() {
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             <DropdownMenuGroup>
-              <DropdownMenuItem @select="changerDeContexte">Changer de contexte</DropdownMenuItem>
+              <DropdownMenuItem @select="changeContext">Changer de contexte</DropdownMenuItem>
             </DropdownMenuGroup>
           </DropdownMenuContent>
         </DropdownMenu>

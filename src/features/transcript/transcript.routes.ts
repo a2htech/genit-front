@@ -1,6 +1,6 @@
 import type { RouteRecordRaw } from 'vue-router'
 
-export const decisionRoutes: RouteRecordRaw[] = [
+export const transcriptRoutes: RouteRecordRaw[] = [
   {
     path: '/transcript/:studentId?',
     name: 'transcript',

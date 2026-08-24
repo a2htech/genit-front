@@ -1,46 +1,47 @@
 import { apiClient } from '@/shared/api/client'
-import type { Niveau } from '@/features/academic-year'
-import type { NoteRow, SessionExamen } from './score.types'
+import { fetchAllPages, type LaravelPage } from '@/shared/api/pagination'
+import { SESSION_CODE, type ExamSession, type Score } from './score.types'
 
-export interface FetchNotesParams {
-  matiereId: string
-  session: SessionExamen
-  niveau: Niveau
+export interface FetchScoresParams {
+  subjectId: number
+  session: ExamSession
+  classYear: number
 }
 
-export async function fetchNotes(params: FetchNotesParams): Promise<NoteRow[]> {
-  const { data } = await apiClient.get<NoteRow[]>('/notes', {
-    params: { matiere_id: params.matiereId, session: params.session, niveau: params.niveau },
+export async function fetchScores(params: FetchScoresParams): Promise<Score[]> {
+  return fetchAllPages((page) =>
+    apiClient
+      .get<LaravelPage<Score>>('/scores', {
+        params: {
+          subject_id: params.subjectId,
+          session: SESSION_CODE[params.session],
+          class_year: params.classYear,
+          per_page: 100,
+          page,
+        },
+      })
+      .then((r) => r.data),
+  )
+}
+
+export interface StoreScoresPayload {
+  subjectId: number
+  session: ExamSession
+  classYear: number
+  scores: { student_id: number; score: number }[]
+}
+
+export async function storeScoresForSubject(payload: StoreScoresPayload): Promise<Score[]> {
+  const { data } = await apiClient.post<{ data: Score[] }>(`/subjects/${payload.subjectId}/scores`, {
+    subject_id: payload.subjectId,
+    session: SESSION_CODE[payload.session],
+    class_year: payload.classYear,
+    scores: payload.scores,
   })
-  return data
+  return data.data
 }
 
-export interface UpsertNotePayload {
-  matiereId: string
-  session: SessionExamen
-  etudiantId: string
-  valeur: number | null
-}
-
-export async function upsertNote(payload: UpsertNotePayload): Promise<void> {
-  await apiClient.put('/notes', {
-    matiere_id: payload.matiereId,
-    session: payload.session,
-    etudiant_id: payload.etudiantId,
-    valeur: payload.valeur,
-  })
-}
-
-export async function validerSaisie(matiereId: string, session: SessionExamen): Promise<void> {
-  await apiClient.post('/notes/valider', { matiere_id: matiereId, session })
-}
-
-export interface SaisieProgress {
-  filled: number
-  total: number
-}
-
-export async function fetchSaisieProgress(niveau: Niveau): Promise<SaisieProgress> {
-  const { data } = await apiClient.get<SaisieProgress>('/notes/progression', { params: { niveau } })
-  return data
+export async function updateScore(id: number, score: number | null): Promise<Score> {
+  const { data } = await apiClient.put<{ data: Score }>(`/scores/${id}`, { score })
+  return data.data
 }
