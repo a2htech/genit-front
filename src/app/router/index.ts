@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
 
 import { academicYearRoutes, useContextStore } from '@/features/academic-year'
+import { authRoutes, useAuthStore } from '@/features/auth'
 import { decisionRoutes } from '@/features/decision'
 import { studentRoutes } from '@/features/student'
 import { teachingUnitRoutes } from '@/features/teaching-unit'
@@ -12,6 +13,7 @@ const routes: RouteRecordRaw[] = [
     name: 'dashboard',
     component: () => import('../pages/DashboardPage.vue'),
   },
+  ...authRoutes,
   ...academicYearRoutes,
   ...studentRoutes,
   ...teachingUnitRoutes,
@@ -23,7 +25,7 @@ const routes: RouteRecordRaw[] = [
           path: '/ds',
           name: 'ds-preview',
           component: () => import('../dev/DsPreviewPage.vue'),
-          meta: { requiresContext: false },
+          meta: { requiresAuth: false, requiresContext: false },
         },
       ]
     : []),
@@ -34,7 +36,13 @@ const router = createRouter({
   routes,
 })
 
-router.beforeEach((to) => {
+router.beforeEach(async (to) => {
+  if (to.meta.requiresAuth !== false) {
+    const auth = useAuthStore()
+    await auth.waitUntilLoaded()
+    if (!auth.isSignedIn) return { name: 'sign-in' }
+  }
+
   if (to.meta.requiresContext === false) return true
   const context = useContextStore()
   if (!context.hasContext) return { name: 'context-setup' }

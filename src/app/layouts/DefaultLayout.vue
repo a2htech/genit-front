@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { UserButton } from '@clerk/vue'
 import { ChevronDownIcon, GraduationCapIcon } from '@lucide/vue'
 import {
   DropdownMenu,
@@ -90,6 +91,8 @@ function changerDeContexte() {
             </DropdownMenuGroup>
           </DropdownMenuContent>
         </DropdownMenu>
+
+        <UserButton />
       </div>
     </template>
 
