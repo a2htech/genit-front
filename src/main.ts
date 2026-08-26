@@ -6,7 +6,7 @@ import App from './App.vue'
 import router from '@/app/router'
 import { VueQueryPlugin, queryClient } from '@/app/plugins/query'
 import { clerkAppearance } from '@/features/auth'
-import { setAuthTokenProvider } from '@/shared/api/client'
+import { setAuthTokenProvider, setUnauthorizedHandler } from '@/shared/api/client'
 import '@/app/styles/main.css'
 
 const CLERK_PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY
@@ -28,6 +28,7 @@ function bootstrap() {
   // useAuth() injects from the plugin's provide(), so it needs runWithContext outside a component.
   const { getToken } = app.runWithContext(() => useAuth())
   setAuthTokenProvider(() => getToken.value())
+  setUnauthorizedHandler(() => router.push({ name: 'unauthorized' }))
 
   app.use(router)
   app.use(VueQueryPlugin, { queryClient })
