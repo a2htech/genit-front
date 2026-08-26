@@ -13,6 +13,12 @@ const routes: RouteRecordRaw[] = [
     name: 'dashboard',
     component: () => import('../pages/DashboardPage.vue'),
   },
+  {
+    path: '/unauthorized',
+    name: 'unauthorized',
+    component: () => import('../pages/UnauthorizedPage.vue'),
+    meta: { requiresAuth: false, requiresContext: false },
+  },
   ...authRoutes,
   ...academicYearRoutes,
   ...studentRoutes,
