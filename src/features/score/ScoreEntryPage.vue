@@ -1,14 +1,26 @@
 <script setup lang="ts">
 import { computed, reactive, ref, watch, watchEffect } from 'vue'
 import { useRouter } from 'vue-router'
+import { CheckIcon, ChevronDownIcon } from '@lucide/vue'
 import { Button } from '@/design-system/ui/button'
+import {
+  Combobox,
+  ComboboxAnchor,
+  ComboboxEmpty,
+  ComboboxGroup,
+  ComboboxInput,
+  ComboboxItem,
+  ComboboxItemIndicator,
+  ComboboxList,
+  ComboboxTrigger,
+  ComboboxViewport,
+} from '@/design-system/ui/combobox'
 import { Input } from '@/design-system/ui/input'
-import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from '@/design-system/ui/select'
 import { Spinner } from '@/design-system/ui/spinner'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/design-system/ui/table'
 import { ToggleGroup, ToggleGroupItem } from '@/design-system/ui/toggle-group'
 import { useContextStore, useCurrentAcademicYearQuery } from '@/features/academic-year'
-import { useSubjectsQuery } from '@/features/teaching-unit'
+import { useSubjectsQuery, type Subject } from '@/features/teaching-unit'
 import { useStudentsQuery } from '@/features/student'
 import { toApiError } from '@/shared/api/errors'
 import { isFailingScore } from '@/shared/utils/format'
@@ -120,14 +132,32 @@ function finish() {
     <div class="mb-5.5 flex flex-wrap gap-4">
       <div>
         <div class="mb-1.5 text-xs font-bold tracking-wide uppercase">Matière</div>
-        <Select :model-value="subjectId ?? undefined" @update:model-value="(v) => (subjectId = Number(v))">
-          <SelectTrigger class="min-w-65"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectGroup>
-              <SelectItem v-for="s in subjects ?? []" :key="s.id" :value="s.id">{{ s.name }}</SelectItem>
-            </SelectGroup>
-          </SelectContent>
-        </Select>
+        <Combobox
+          :model-value="currentSubject"
+          by="id"
+          @update:model-value="(v) => (subjectId = (v as Subject | null)?.id ?? null)"
+        >
+          <ComboboxAnchor as-child>
+            <ComboboxTrigger as-child>
+              <Button variant="outline" emphasis="compact" role="combobox" class="min-w-65 justify-between gap-2 bg-card">
+                {{ currentSubject?.name ?? 'Sélectionner une matière' }}
+                <ChevronDownIcon class="size-4 shrink-0 opacity-50" />
+              </Button>
+            </ComboboxTrigger>
+          </ComboboxAnchor>
+          <ComboboxList align="start" class="w-65">
+            <ComboboxInput placeholder="Rechercher une matière…" />
+            <ComboboxViewport>
+              <ComboboxEmpty>Aucune matière trouvée.</ComboboxEmpty>
+              <ComboboxGroup>
+                <ComboboxItem v-for="s in subjects ?? []" :key="s.id" :value="s">
+                  {{ s.name }}
+                  <ComboboxItemIndicator><CheckIcon /></ComboboxItemIndicator>
+                </ComboboxItem>
+              </ComboboxGroup>
+            </ComboboxViewport>
+          </ComboboxList>
+        </Combobox>
       </div>
       <div>
         <div class="mb-1.5 text-xs font-bold tracking-wide uppercase">Session</div>

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, reactive, ref } from 'vue'
-import { ChevronDownIcon, ChevronRightIcon } from '@lucide/vue'
+import { CheckIcon, ChevronDownIcon, ChevronRightIcon } from '@lucide/vue'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -13,7 +13,18 @@ import {
 } from '@/design-system/ui/alert-dialog'
 import { Badge } from '@/design-system/ui/badge'
 import { Button } from '@/design-system/ui/button'
-import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from '@/design-system/ui/select'
+import {
+  Combobox,
+  ComboboxAnchor,
+  ComboboxEmpty,
+  ComboboxGroup,
+  ComboboxInput,
+  ComboboxItem,
+  ComboboxItemIndicator,
+  ComboboxList,
+  ComboboxTrigger,
+  ComboboxViewport,
+} from '@/design-system/ui/combobox'
 import { Spinner } from '@/design-system/ui/spinner'
 import { ToggleGroup, ToggleGroupItem } from '@/design-system/ui/toggle-group'
 import { useContextStore } from '@/features/academic-year'
@@ -43,7 +54,7 @@ const unitsForSemester = computed(() => (teachingUnits.value ?? []).filter((u) =
 const allSubjects = computed(() => (teachingUnits.value ?? []).flatMap((u) => u.subjects))
 
 const expandedUnit = reactive<Record<number, boolean>>({})
-const attachValue = reactive<Record<number, string>>({})
+const attachValue = reactive<Record<number, Subject | null>>({})
 
 function toggleExpand(unitId: number) {
   expandedUnit[unitId] = !expandedUnit[unitId]
@@ -53,14 +64,14 @@ function availableFor(unitId: number): Subject[] {
   return allSubjects.value.filter((s) => s.teaching_unit_id !== unitId)
 }
 
-function attach(unitId: number, subjectId: string) {
-  if (!subjectId) return
+function attach(unitId: number, subject: Subject | null) {
+  if (!subject) return
   errorMessage.value = null
   updateMutation.mutate(
-    { id: Number(subjectId), payload: { teaching_unit_id: unitId } },
+    { id: subject.id, payload: { teaching_unit_id: unitId } },
     { onError: (e) => (errorMessage.value = toApiError(e).message) },
   )
-  attachValue[unitId] = ''
+  attachValue[unitId] = null
 }
 
 const emptyForm: SubjectFormValues = { name: '', credit: 1, hourly_vol: 1, teaching_unit_id: 0 }
@@ -174,20 +185,33 @@ async function confirmDelete() {
         </div>
 
         <div class="mt-3.5 flex flex-wrap items-center gap-2.5">
-          <Select
+          <Combobox
             v-if="availableFor(unit.id).length > 0"
-            :model-value="attachValue[unit.id] || undefined"
-            @update:model-value="(v) => v && attach(unit.id, String(v))"
+            :model-value="attachValue[unit.id]"
+            by="id"
+            @update:model-value="(v) => attach(unit.id, v as Subject | null)"
           >
-            <SelectTrigger size="sm"><SelectValue placeholder="+ Rattacher une matière existante…" /></SelectTrigger>
-            <SelectContent>
-              <SelectGroup>
-                <SelectItem v-for="subject in availableFor(unit.id)" :key="subject.id" :value="String(subject.id)">
-                  {{ subject.name }}
-                </SelectItem>
-              </SelectGroup>
-            </SelectContent>
-          </Select>
+            <ComboboxAnchor as-child>
+              <ComboboxTrigger as-child>
+                <Button variant="outline" emphasis="compact" size="sm" role="combobox" class="justify-between gap-2 bg-card">
+                  + Rattacher une matière existante…
+                  <ChevronDownIcon class="size-4 shrink-0 opacity-50" />
+                </Button>
+              </ComboboxTrigger>
+            </ComboboxAnchor>
+            <ComboboxList align="start" class="w-72">
+              <ComboboxInput placeholder="Rechercher une matière…" />
+              <ComboboxViewport>
+                <ComboboxEmpty>Aucune matière trouvée.</ComboboxEmpty>
+                <ComboboxGroup>
+                  <ComboboxItem v-for="subject in availableFor(unit.id)" :key="subject.id" :value="subject">
+                    {{ subject.name }}
+                    <ComboboxItemIndicator><CheckIcon /></ComboboxItemIndicator>
+                  </ComboboxItem>
+                </ComboboxGroup>
+              </ComboboxViewport>
+            </ComboboxList>
+          </Combobox>
           <Button emphasis="compact" size="sm" @click="openNewSubject(unit.id)">+ Nouvelle matière</Button>
         </div>
       </div>
