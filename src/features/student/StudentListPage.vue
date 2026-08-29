@@ -13,11 +13,10 @@ import {
 } from '@/design-system/ui/alert-dialog'
 import { Badge } from '@/design-system/ui/badge'
 import { Button } from '@/design-system/ui/button'
-import { Empty, EmptyDescription, EmptyTitle } from '@/design-system/ui/empty'
 import { Input } from '@/design-system/ui/input'
 import { Pagination, PaginationContent, PaginationItem } from '@/design-system/ui/pagination'
 import { Spinner } from '@/design-system/ui/spinner'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/design-system/ui/table'
+import { Table, TableBody, TableCell, TableEmpty, TableHead, TableHeader, TableRow } from '@/design-system/ui/table'
 import { useContextStore } from '@/features/academic-year'
 import { toApiError } from '@/shared/api/errors'
 import { formatDate } from '@/shared/utils/format'
@@ -157,53 +156,52 @@ function openTranscript(s: Student) {
 
   <Spinner v-if="isPending && !data" class="mx-auto mt-12 size-8" />
   <template v-else>
-    <Empty v-if="students.length === 0">
-      <EmptyTitle>Aucun étudiant trouvé</EmptyTitle>
-      <EmptyDescription>Essayez une autre recherche ou ajoutez un nouvel étudiant.</EmptyDescription>
-    </Empty>
-    <template v-else>
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>#</TableHead>
-            <TableHead>Nom</TableHead>
-            <TableHead>Prénom</TableHead>
-            <TableHead>Naissance</TableHead>
-            <TableHead>Statut</TableHead>
-            <TableHead class="text-right">Actions</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          <TableRow v-for="s in students" :key="s.id" class="cursor-pointer" @click="openTranscript(s)">
-            <TableCell class="font-bold">{{ s.id }}</TableCell>
-            <TableCell class="underline">{{ s.last_name }}</TableCell>
-            <TableCell>{{ s.first_name }}</TableCell>
-            <TableCell>{{ formatDate(s.birthday) }}</TableCell>
-            <TableCell>
-              <Badge :variant="registeredTone(s.registered)">
-                {{ s.registered ? 'Inscrit' : 'Non inscrit' }}
-              </Badge>
-            </TableCell>
-            <TableCell class="text-right" @click.stop>
-              <div class="flex justify-end gap-1.5">
-                <Button emphasis="compact" size="sm" @click="openEdit(s)">Éditer</Button>
-                <Button variant="destructive" emphasis="compact" size="sm" @click="askDelete(s)">
-                  Suppr.
-                </Button>
-              </div>
-            </TableCell>
-          </TableRow>
-        </TableBody>
-      </Table>
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead>#</TableHead>
+          <TableHead>Nom</TableHead>
+          <TableHead>Prénom</TableHead>
+          <TableHead>Naissance</TableHead>
+          <TableHead>Statut</TableHead>
+          <TableHead class="text-right">Actions</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        <TableEmpty v-if="students.length === 0" :colspan="6">
+          <div class="text-center text-sm font-semibold text-muted-foreground">
+            Aucun étudiant trouvé — essayez une autre recherche ou ajoutez un nouvel étudiant.
+          </div>
+        </TableEmpty>
+        <TableRow v-for="s in students" :key="s.id" interactive @click="openTranscript(s)">
+          <TableCell class="font-bold">{{ s.id }}</TableCell>
+          <TableCell class="underline">{{ s.last_name }}</TableCell>
+          <TableCell>{{ s.first_name }}</TableCell>
+          <TableCell>{{ formatDate(s.birthday) }}</TableCell>
+          <TableCell>
+            <Badge :variant="registeredTone(s.registered)">
+              {{ s.registered ? 'Inscrit' : 'Non inscrit' }}
+            </Badge>
+          </TableCell>
+          <TableCell class="text-right" @click.stop>
+            <div class="flex justify-end gap-2">
+              <Button emphasis="compact" size="sm" @click="openEdit(s)">Éditer</Button>
+              <Button variant="destructive" emphasis="compact" size="sm" @click="askDelete(s)">
+                Suppr.
+              </Button>
+            </div>
+          </TableCell>
+        </TableRow>
+      </TableBody>
+    </Table>
 
-      <Pagination v-if="totalPages > 1" v-model:page="page" :total="total" :items-per-page="PAGE_SIZE" class="mt-4.5">
-        <PaginationContent>
-          <PaginationItem v-for="p in pageNumbers" :key="p" :value="p" :is-active="p === page">
-            {{ p }}
-          </PaginationItem>
-        </PaginationContent>
-      </Pagination>
-    </template>
+    <Pagination v-if="totalPages > 1" v-model:page="page" :total="total" :items-per-page="PAGE_SIZE" class="mt-4.5">
+      <PaginationContent>
+        <PaginationItem v-for="p in pageNumbers" :key="p" :value="p" :is-active="p === page">
+          {{ p }}
+        </PaginationItem>
+      </PaginationContent>
+    </Pagination>
   </template>
 
   <StudentFormModal

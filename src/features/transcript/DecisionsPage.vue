@@ -6,7 +6,7 @@ import { Button } from '@/design-system/ui/button'
 import { Card } from '@/design-system/ui/card'
 import { Empty, EmptyDescription, EmptyTitle } from '@/design-system/ui/empty'
 import { Spinner } from '@/design-system/ui/spinner'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/design-system/ui/table'
+import { Table, TableBody, TableCell, TableEmpty, TableHead, TableHeader, TableRow } from '@/design-system/ui/table'
 import { ToggleGroup, ToggleGroupItem } from '@/design-system/ui/toggle-group'
 import { useContextStore } from '@/features/academic-year'
 import { ACADEMIC_STATUS_LABELS, useStudentsQuery, type AcademicStatusCode } from '@/features/student'
@@ -125,10 +125,7 @@ function openTranscript(studentId: number) {
         </ToggleGroupItem>
       </ToggleGroup>
 
-      <Empty v-if="rows.length === 0">
-        <EmptyTitle>Aucun étudiant dans ce filtre</EmptyTitle>
-      </Empty>
-      <Table v-else>
+      <Table>
         <TableHeader>
           <TableRow>
             <TableHead>#</TableHead>
@@ -138,10 +135,15 @@ function openTranscript(studentId: number) {
           </TableRow>
         </TableHeader>
         <TableBody>
+          <TableEmpty v-if="rows.length === 0" :colspan="4">
+            <div class="text-center text-sm font-semibold text-muted-foreground">
+              Aucun étudiant dans ce filtre.
+            </div>
+          </TableEmpty>
           <TableRow
             v-for="row in rows"
             :key="row.result.id"
-            class="cursor-pointer"
+            interactive
             @click="openTranscript(row.result.student_id)"
           >
             <TableCell class="font-bold">{{ row.result.student_id }}</TableCell>
