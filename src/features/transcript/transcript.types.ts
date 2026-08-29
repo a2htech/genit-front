@@ -1,3 +1,5 @@
+import type { AcademicStatusCode } from '@/features/student'
+
 /** AcademicStatusEnum::label() côté back (P/C/R/T résolus en toutes lettres). */
 export type AcademicStatusLabel = 'PASSED' | 'CONDITIONAL' | 'FAILED' | 'COMPLETED'
 
@@ -69,4 +71,21 @@ export interface Transcript {
   semesters: TranscriptSemester[]
   annualResult: AcademicStatusLabel
   cumulExpired: boolean
+}
+
+export interface FailedSubject {
+  id: number
+  name: string
+}
+
+/** Décision annuelle (P/C/R/T) déjà calculée et persistée pour un étudiant, telle que listée par classe. */
+export interface AnnualResult {
+  id: number
+  student_id: number
+  class: string
+  class_year: number
+  status: AcademicStatusCode
+  /** La dette de l'année précédente n'a pas été rattrapée à temps (cumul expiré). */
+  expired: boolean
+  failed_subjects: FailedSubject[]
 }
