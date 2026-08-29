@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
+import { CircleXIcon } from '@lucide/vue'
 import { Badge } from '@/design-system/ui/badge'
 import { Button } from '@/design-system/ui/button'
 import { Card } from '@/design-system/ui/card'
@@ -48,6 +49,7 @@ const rows = computed(() => {
   return (filter.value === 'all' ? list : list.filter((r) => r.status === filter.value)).map((r) => ({
     result: r,
     student: studentsById.value.get(r.student_id) ?? null,
+    excluded: r.expired,
   }))
 })
 
@@ -151,7 +153,13 @@ function openTranscript(studentId: number) {
               {{ row.student ? `${row.student.first_name} ${row.student.last_name ?? ''}` : `Étudiant #${row.result.student_id}` }}
             </TableCell>
             <TableCell>
-              <Badge :variant="statusTone[row.result.status]">{{ ACADEMIC_STATUS_LABELS[row.result.status] }}</Badge>
+              <Badge
+                :variant="statusTone[row.result.status]"
+                :title="row.excluded ? 'Dette non rattrapée dans le délai imparti : ne peut plus se réinscrire à ce niveau.' : undefined"
+              >
+                <CircleXIcon v-if="row.excluded" aria-hidden="true" class="size-3" />
+                {{ row.excluded ? 'Exclu(e)' : ACADEMIC_STATUS_LABELS[row.result.status] }}
+              </Badge>
             </TableCell>
             <TableCell>
               <div class="flex flex-wrap gap-1.5">
