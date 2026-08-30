@@ -20,7 +20,7 @@ import { Spinner } from '@/design-system/ui/spinner'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/design-system/ui/table'
 import { ToggleGroup, ToggleGroupItem } from '@/design-system/ui/toggle-group'
 import { useContextStore, useCurrentAcademicYearQuery } from '@/features/academic-year'
-import { useSubjectsQuery, type Subject } from '@/features/teaching-unit'
+import { useTeachingUnitsQuery, type Subject } from '@/features/teaching-unit'
 import { useStudentsQuery } from '@/features/student'
 import { toApiError } from '@/shared/api/errors'
 import { isFailingScore } from '@/shared/utils/format'
@@ -35,10 +35,12 @@ const context = useContextStore()
 const { data: currentYear } = useCurrentAcademicYearQuery()
 const classYear = computed(() => currentYear.value?.year ?? null)
 
-const { data: subjects, isPending: subjectsPending } = useSubjectsQuery()
+const { data: teachingUnits, isPending: subjectsPending } = useTeachingUnitsQuery()
+const unitsWithSubjects = computed(() => (teachingUnits.value ?? []).filter((u) => u.subjects.length > 0))
+const subjects = computed(() => unitsWithSubjects.value.flatMap((u) => u.subjects))
 const subjectId = ref<number | null>(null)
 watchEffect(() => {
-  if (!subjectId.value && subjects.value && subjects.value.length > 0) {
+  if (!subjectId.value && subjects.value.length > 0) {
     subjectId.value = subjects.value[0]!.id
   }
 })
@@ -52,7 +54,10 @@ const updateMutation = useUpdateScoreMutation(subjectId, session, classYear)
 
 const isPending = computed(() => subjectsPending.value || studentsPending.value)
 
-const currentSubject = computed(() => subjects.value?.find((s) => s.id === subjectId.value) ?? null)
+const currentSubject = computed(() => subjects.value.find((s) => s.id === subjectId.value) ?? null)
+const currentUnit = computed(
+  () => unitsWithSubjects.value.find((u) => u.subjects.some((s) => s.id === subjectId.value)) ?? null,
+)
 const subjectLabel = computed(() => (currentSubject.value ? `${currentSubject.value.name}` : ''))
 
 const existingByStudent = computed(() => {
@@ -145,12 +150,16 @@ function finish() {
               </Button>
             </ComboboxTrigger>
           </ComboboxAnchor>
-          <ComboboxList align="start" class="w-65">
+          <ComboboxList align="start" class="w-75">
             <ComboboxInput placeholder="Rechercher une matière…" />
             <ComboboxViewport>
               <ComboboxEmpty>Aucune matière trouvée.</ComboboxEmpty>
-              <ComboboxGroup>
-                <ComboboxItem v-for="s in subjects ?? []" :key="s.id" :value="s">
+              <ComboboxGroup
+                v-for="unit in unitsWithSubjects"
+                :key="unit.id"
+                :heading="`${unit.code} — ${unit.name}`"
+              >
+                <ComboboxItem v-for="s in unit.subjects" :key="s.id" :value="s">
                   {{ s.name }}
                   <ComboboxItemIndicator><CheckIcon /></ComboboxItemIndicator>
                 </ComboboxItem>
@@ -169,7 +178,11 @@ function finish() {
     </div>
 
     <div class="mb-2.5 flex items-center justify-between">
-      <div class="text-sm font-bold">{{ subjectLabel }}</div>
+      <div class="text-sm font-bold">
+        <span v-if="currentUnit" class="text-muted-foreground">{{ currentUnit.code }} — {{ currentUnit.name }}</span>
+        <span v-if="currentUnit" class="mx-1.5 text-muted-foreground">›</span>
+        <span>{{ subjectLabel }}</span>
+      </div>
       <div class="font-heading bg-primary px-3.5 py-1.5 text-sm font-extrabold text-primary-foreground">
         {{ progressLabel }} saisies
       </div>
@@ -183,14 +196,12 @@ function finish() {
     <Table v-else class="mb-24">
       <TableHeader>
         <TableRow>
-          <TableHead>#</TableHead>
           <TableHead>Étudiant</TableHead>
           <TableHead class="w-40">Note / 20</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
         <TableRow v-for="(row, index) in rows" :key="row.student.id">
-          <TableCell class="font-bold">{{ row.student.id }}</TableCell>
           <TableCell>{{ row.student.first_name }} {{ row.student.last_name }}</TableCell>
           <TableCell>
             <Input
