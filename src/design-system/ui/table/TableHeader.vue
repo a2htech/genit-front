@@ -1,0 +1,17 @@
+<script setup lang="ts">
+import type { HTMLAttributes } from 'vue'
+import { cn } from '@/shared/lib/utils'
+
+const props = defineProps<{
+  class?: HTMLAttributes['class']
+}>()
+</script>
+
+<template>
+  <thead
+    data-slot="table-header"
+    :class="cn('bg-primary text-primary-foreground [&_tr]:border-b-0 [&_tr]:hover:bg-primary', props.class)"
+  >
+    <slot />
+  </thead>
+</template>
