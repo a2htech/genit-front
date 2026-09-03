@@ -1,3 +1,5 @@
+import type { Level } from '@/features/academic-year'
+
 export type ExamSession = 'normale' | 'rattrapage'
 
 /** Code numérique attendu en écriture (InsertScoresBySubjectRequest/UpdateScoreRequest) ; la lecture renvoie le libellé. */
@@ -16,4 +18,17 @@ export interface Score {
   original: number | null
   created_at: string | null
   updated_at: string | null
+}
+
+export interface SubjectEligibleStudent {
+  id: string
+  first_name: string
+  last_name: string
+  class: Level
+  score: Score | null
+}
+
+export interface SubjectEligibleStudents {
+  regularSession: SubjectEligibleStudent[]
+  retakeSession: SubjectEligibleStudent[]
 }

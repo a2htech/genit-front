@@ -1,27 +1,9 @@
 import { apiClient } from '@/shared/api/client'
-import { fetchAllPages, type LaravelPage } from '@/shared/api/pagination'
-import { SESSION_CODE, type ExamSession, type Score } from './score.types'
+import { SESSION_CODE, type ExamSession, type Score, type SubjectEligibleStudents } from './score.types'
 
-export interface FetchScoresParams {
-  subjectId: number
-  session: ExamSession
-  classYear: number
-}
-
-export async function fetchScores(params: FetchScoresParams): Promise<Score[]> {
-  return fetchAllPages((page) =>
-    apiClient
-      .get<LaravelPage<Score>>('/scores', {
-        params: {
-          subject_id: params.subjectId,
-          session: SESSION_CODE[params.session],
-          class_year: params.classYear,
-          per_page: 100,
-          page,
-        },
-      })
-      .then((r) => r.data),
-  )
+export async function fetchEligibleStudents(subjectId: number): Promise<SubjectEligibleStudents> {
+  const { data } = await apiClient.get<{ data: SubjectEligibleStudents }>(`/subjects/${subjectId}/eligible-students`)
+  return data.data
 }
 
 export interface StoreScoresPayload {
