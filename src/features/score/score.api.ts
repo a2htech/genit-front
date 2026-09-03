@@ -1,8 +1,16 @@
 import { apiClient } from '@/shared/api/client'
+import type { Student } from '@/features/student'
 import { SESSION_CODE, type ExamSession, type Score, type SubjectEligibleStudents } from './score.types'
 
 export async function fetchEligibleStudents(subjectId: number): Promise<SubjectEligibleStudents> {
   const { data } = await apiClient.get<{ data: SubjectEligibleStudents }>(`/subjects/${subjectId}/eligible-students`)
+  return data.data
+}
+
+export async function fetchRetakeEligibleStudents(subjectId: number, name: string): Promise<Student[]> {
+  const { data } = await apiClient.get<{ data: Student[] }>(`/subjects/${subjectId}/retake-eligible-students`, {
+    params: name ? { name } : undefined,
+  })
   return data.data
 }
 
