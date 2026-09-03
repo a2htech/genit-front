@@ -21,11 +21,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { ToggleGroup, ToggleGroupItem } from '@/design-system/ui/toggle-group'
 import { useContextStore, useCurrentAcademicYearQuery } from '@/features/academic-year'
 import { useTeachingUnitsQuery, type Subject } from '@/features/teaching-unit'
-import { useStudentsQuery } from '@/features/student'
 import { toApiError } from '@/shared/api/errors'
 import { isFailingScore } from '@/shared/utils/format'
-import { useScoresQuery, useStoreScoresMutation, useUpdateScoreMutation } from './score.queries'
-import type { ExamSession, Score } from './score.types'
+import { useEligibleStudentsQuery, useStoreScoresMutation, useUpdateScoreMutation } from './score.queries'
+import type { ExamSession } from './score.types'
 
 const errorMessage = ref<string | null>(null)
 
@@ -46,13 +45,16 @@ watchEffect(() => {
 })
 
 const session = ref<ExamSession>('normale')
+function onSessionChange(value: unknown) {
+  if (!value) return
+  session.value = value as ExamSession
+}
 
-const { data: students, isPending: studentsPending } = useStudentsQuery()
-const { data: existingScores, isPending: scoresPending } = useScoresQuery(subjectId, session, classYear)
-const storeMutation = useStoreScoresMutation(subjectId, session, classYear)
-const updateMutation = useUpdateScoreMutation(subjectId, session, classYear)
+const { data: eligibleStudents, isPending: eligibleStudentsPending } = useEligibleStudentsQuery(subjectId)
+const storeMutation = useStoreScoresMutation(subjectId)
+const updateMutation = useUpdateScoreMutation(subjectId)
 
-const isPending = computed(() => subjectsPending.value || studentsPending.value)
+const isPending = computed(() => subjectsPending.value)
 
 const currentSubject = computed(() => subjects.value.find((s) => s.id === subjectId.value) ?? null)
 const currentUnit = computed(
@@ -60,10 +62,9 @@ const currentUnit = computed(
 )
 const subjectLabel = computed(() => (currentSubject.value ? `${currentSubject.value.name}` : ''))
 
-const existingByStudent = computed(() => {
-  const map = new Map<number, Score>()
-  for (const s of existingScores.value ?? []) map.set(s.student_id, s)
-  return map
+const sessionStudents = computed(() => {
+  if (!eligibleStudents.value) return []
+  return session.value === 'normale' ? eligibleStudents.value.regularSession : eligibleStudents.value.retakeSession
 })
 
 /** Brouillon local des lignes non encore envoyées (aucun score existant côté back pour ce couple étudiant/matière). */
@@ -72,14 +73,13 @@ watch([subjectId, session], () => {
   for (const key of Object.keys(drafts)) delete drafts[Number(key)]
 })
 
-const rows = computed(
-  () => (students.value ?? []).map((s) => ({ student: s, existing: existingByStudent.value.get(s.id) ?? null })),
+const rows = computed(() =>
+  sessionStudents.value.map((s) => ({ studentId: Number(s.id), student: s, existing: s.score })),
 )
 
 const filledDraftsCount = computed(() => Object.values(drafts).filter((v) => typeof v === 'number').length)
-const progressLabel = computed(
-  () => `${(existingScores.value?.length ?? 0) + filledDraftsCount.value}/${rows.value.length}`,
-)
+const filledExistingCount = computed(() => rows.value.filter((r) => r.existing !== null).length)
+const progressLabel = computed(() => `${filledExistingCount.value + filledDraftsCount.value}/${rows.value.length}`)
 
 function onExistingInput(scoreId: number, raw: string | number) {
   const value = raw === '' ? null : Number(raw)
@@ -170,7 +170,7 @@ function finish() {
       </div>
       <div>
         <div class="mb-1.5 text-xs font-bold tracking-wide uppercase">Session</div>
-        <ToggleGroup v-model="session" type="single" variant="outline">
+        <ToggleGroup :model-value="session" type="single" variant="outline" @update:model-value="onSessionChange">
           <ToggleGroupItem value="normale">Normale</ToggleGroupItem>
           <ToggleGroupItem value="rattrapage">Rattrapage</ToggleGroupItem>
         </ToggleGroup>
@@ -192,7 +192,7 @@ function finish() {
       {{ errorMessage }}
     </div>
 
-    <Spinner v-if="scoresPending" class="mx-auto my-8 size-8" />
+    <Spinner v-if="eligibleStudentsPending" class="mx-auto my-8 size-8" />
     <Table v-else class="mb-24">
       <TableHeader>
         <TableRow>
@@ -201,7 +201,7 @@ function finish() {
         </TableRow>
       </TableHeader>
       <TableBody>
-        <TableRow v-for="(row, index) in rows" :key="row.student.id">
+        <TableRow v-for="(row, index) in rows" :key="row.studentId">
           <TableCell>{{ row.student.first_name }} {{ row.student.last_name }}</TableCell>
           <TableCell>
             <Input
@@ -227,9 +227,9 @@ function finish() {
               :step="0.5"
               placeholder="—"
               class="text-center font-bold"
-              :class="isFailingScore(drafts[row.student.id] ?? null) ? 'text-destructive' : ''"
-              :model-value="drafts[row.student.id] ?? ''"
-              @update:model-value="(v) => onDraftInput(row.student.id, v ?? '')"
+              :class="isFailingScore(drafts[row.studentId] ?? null) ? 'text-destructive' : ''"
+              :model-value="drafts[row.studentId] ?? ''"
+              @update:model-value="(v) => onDraftInput(row.studentId, v ?? '')"
               @keydown="(e: KeyboardEvent) => onKeydown(e, index)"
             />
           </TableCell>
