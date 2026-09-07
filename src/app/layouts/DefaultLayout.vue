@@ -10,11 +10,14 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/design-system/ui/dropdown-menu'
+import { FullPageLoader } from '@/design-system/ui/full-page-loader'
 import { LEVELS, useContextStore, useCurrentAcademicYearQuery, type Level } from '@/features/academic-year'
+import { useAuthStore } from '@/features/auth'
 
 const route = useRoute()
 const router = useRouter()
 const context = useContextStore()
+const auth = useAuthStore()
 const { data: currentYear } = useCurrentAcademicYearQuery()
 
 const showChrome = computed(() => route.meta.requiresContext !== false)
@@ -38,7 +41,8 @@ function changeContext() {
 </script>
 
 <template>
-  <div class="min-h-screen bg-background">
+  <FullPageLoader v-if="!auth.isLoaded" />
+  <div v-else class="min-h-screen bg-background">
     <template v-if="showChrome">
       <header class="flex h-16 items-center gap-7 border-b-2 border-border bg-card px-6">
         <RouterLink :to="{ name: 'dashboard' }" class="flex items-center gap-2.5 no-underline">

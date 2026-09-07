@@ -16,7 +16,7 @@ import {
   ComboboxViewport,
 } from '@/design-system/ui/combobox'
 import { Input } from '@/design-system/ui/input'
-import { Spinner } from '@/design-system/ui/spinner'
+import { Skeleton, TableRowsSkeleton } from '@/design-system/ui/skeleton'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/design-system/ui/table'
 import { ToggleGroup, ToggleGroupItem } from '@/design-system/ui/toggle-group'
 import { useContextStore, useCurrentAcademicYearQuery } from '@/features/academic-year'
@@ -130,14 +130,15 @@ function finish() {
 </script>
 
 <template>
-  <Spinner v-if="isPending" class="mx-auto mt-32 size-8" />
-  <div v-else>
+  <div>
     <h1 class="font-heading mb-5 text-2xl font-extrabold">Saisie des notes — {{ context.level }}</h1>
 
     <div class="mb-5.5 flex flex-wrap gap-4">
       <div>
         <div class="mb-1.5 text-xs font-bold tracking-wide uppercase">Matière</div>
+        <Skeleton v-if="isPending" class="h-9 w-65" />
         <Combobox
+          v-else
           :model-value="currentSubject"
           by="id"
           @update:model-value="(v) => (subjectId = (v as Subject | null)?.id ?? null)"
@@ -183,7 +184,8 @@ function finish() {
         <span v-if="currentUnit" class="mx-1.5 text-muted-foreground">›</span>
         <span>{{ subjectLabel }}</span>
       </div>
-      <div class="font-heading bg-primary px-3.5 py-1.5 text-sm font-extrabold text-primary-foreground">
+      <Skeleton v-if="isPending" class="h-8 w-24" />
+      <div v-else class="font-heading bg-primary px-3.5 py-1.5 text-sm font-extrabold text-primary-foreground">
         {{ progressLabel }} saisies
       </div>
     </div>
@@ -192,8 +194,7 @@ function finish() {
       {{ errorMessage }}
     </div>
 
-    <Spinner v-if="scoresPending" class="mx-auto my-8 size-8" />
-    <Table v-else class="mb-24">
+    <Table class="mb-24">
       <TableHeader>
         <TableRow>
           <TableHead>Étudiant</TableHead>
@@ -201,39 +202,47 @@ function finish() {
         </TableRow>
       </TableHeader>
       <TableBody>
-        <TableRow v-for="(row, index) in rows" :key="row.student.id">
-          <TableCell>{{ row.student.first_name }} {{ row.student.last_name }}</TableCell>
-          <TableCell>
-            <Input
-              v-if="row.existing"
-              :id="`grade-input-${index}`"
-              type="number"
-              :min="0"
-              :max="20"
-              :step="0.5"
-              placeholder="—"
-              class="text-center font-bold"
-              :class="isFailingScore(row.existing.score) ? 'text-destructive' : ''"
-              :model-value="row.existing.score ?? ''"
-              @update:model-value="(v) => onExistingInput(row.existing!.id, v ?? '')"
-              @keydown="(e: KeyboardEvent) => onKeydown(e, index)"
-            />
-            <Input
-              v-else
-              :id="`grade-input-${index}`"
-              type="number"
-              :min="0"
-              :max="20"
-              :step="0.5"
-              placeholder="—"
-              class="text-center font-bold"
-              :class="isFailingScore(drafts[row.student.id] ?? null) ? 'text-destructive' : ''"
-              :model-value="drafts[row.student.id] ?? ''"
-              @update:model-value="(v) => onDraftInput(row.student.id, v ?? '')"
-              @keydown="(e: KeyboardEvent) => onKeydown(e, index)"
-            />
-          </TableCell>
-        </TableRow>
+        <TableRowsSkeleton
+          v-if="isPending || scoresPending"
+          :rows="6"
+          :columns="2"
+          :cell-class="['h-4 w-40', 'h-9 w-full']"
+        />
+        <template v-else>
+          <TableRow v-for="(row, index) in rows" :key="row.student.id">
+            <TableCell>{{ row.student.first_name }} {{ row.student.last_name }}</TableCell>
+            <TableCell>
+              <Input
+                v-if="row.existing"
+                :id="`grade-input-${index}`"
+                type="number"
+                :min="0"
+                :max="20"
+                :step="0.5"
+                placeholder="—"
+                class="text-center font-bold"
+                :class="isFailingScore(row.existing.score) ? 'text-destructive' : ''"
+                :model-value="row.existing.score ?? ''"
+                @update:model-value="(v) => onExistingInput(row.existing!.id, v ?? '')"
+                @keydown="(e: KeyboardEvent) => onKeydown(e, index)"
+              />
+              <Input
+                v-else
+                :id="`grade-input-${index}`"
+                type="number"
+                :min="0"
+                :max="20"
+                :step="0.5"
+                placeholder="—"
+                class="text-center font-bold"
+                :class="isFailingScore(drafts[row.student.id] ?? null) ? 'text-destructive' : ''"
+                :model-value="drafts[row.student.id] ?? ''"
+                @update:model-value="(v) => onDraftInput(row.student.id, v ?? '')"
+                @keydown="(e: KeyboardEvent) => onKeydown(e, index)"
+              />
+            </TableCell>
+          </TableRow>
+        </template>
       </TableBody>
     </Table>
 

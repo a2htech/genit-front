@@ -6,7 +6,7 @@ import { Badge } from '@/design-system/ui/badge'
 import { Button } from '@/design-system/ui/button'
 import { Card } from '@/design-system/ui/card'
 import { Empty, EmptyDescription, EmptyTitle } from '@/design-system/ui/empty'
-import { Spinner } from '@/design-system/ui/spinner'
+import { Skeleton, StatCardSkeleton, TableRowsSkeleton } from '@/design-system/ui/skeleton'
 import { Table, TableBody, TableCell, TableEmpty, TableHead, TableHeader, TableRow } from '@/design-system/ui/table'
 import { ToggleGroup, ToggleGroupItem } from '@/design-system/ui/toggle-group'
 import { useContextStore } from '@/features/academic-year'
@@ -92,8 +92,7 @@ function openTranscript(studentId: number) {
 </script>
 
 <template>
-  <Spinner v-if="isPending" class="mx-auto mt-32 size-8" />
-  <div v-else>
+  <div>
     <div class="mb-5 flex flex-wrap items-center justify-between gap-4">
       <h1 class="font-heading text-2xl font-extrabold">Résultats — {{ context.level }}</h1>
       <Button variant="secondary" :disabled="calculateMutation.isPending.value" @click="recalculate">
@@ -105,28 +104,17 @@ function openTranscript(studentId: number) {
       {{ errorMessage }}
     </div>
 
-    <Empty v-if="(annualResults ?? []).length === 0">
-      <EmptyTitle>Aucun résultat calculé</EmptyTitle>
-      <EmptyDescription>
-        Cliquez sur « Recalculer les résultats » pour générer les décisions annuelles de cette
-        classe.
-      </EmptyDescription>
-    </Empty>
-
-    <template v-else>
+    <template v-if="isPending">
       <div class="mb-5.5 grid grid-cols-2 gap-4" :class="statsGridClass">
-        <Card v-for="card in visibleStatCards" :key="card.key" class="px-4 py-3">
-          <div class="text-xs font-extrabold text-muted-foreground uppercase">{{ ACADEMIC_STATUS_LABELS[card.key] }}</div>
-          <div class="font-heading text-3xl font-extrabold">{{ card.count }}</div>
-        </Card>
+        <StatCardSkeleton
+          v-for="card in visibleStatCards"
+          :key="card.key"
+          :label="ACADEMIC_STATUS_LABELS[card.key]"
+          class="px-4 py-3"
+          value-class="h-8 w-14"
+        />
       </div>
-
-      <ToggleGroup v-model="filter" type="single" variant="outline" class="mb-4">
-        <ToggleGroupItem v-for="f in filterDefs" :key="f.key" :value="f.key" size="sm">
-          {{ f.label }}
-        </ToggleGroupItem>
-      </ToggleGroup>
-
+      <Skeleton class="mb-4 h-9 w-72" />
       <Table>
         <TableHeader>
           <TableRow>
@@ -137,41 +125,80 @@ function openTranscript(studentId: number) {
           </TableRow>
         </TableHeader>
         <TableBody>
-          <TableEmpty v-if="rows.length === 0" :colspan="4">
-            <div class="text-center text-sm font-semibold text-muted-foreground">
-              Aucun étudiant dans ce filtre.
-            </div>
-          </TableEmpty>
-          <TableRow
-            v-for="row in rows"
-            :key="row.result.id"
-            interactive
-            @click="openTranscript(row.result.student_id)"
-          >
-            <TableCell class="font-bold">{{ row.result.student_id }}</TableCell>
-            <TableCell>
-              {{ row.student ? `${row.student.first_name} ${row.student.last_name ?? ''}` : `Étudiant #${row.result.student_id}` }}
-            </TableCell>
-            <TableCell>
-              <Badge
-                :variant="statusTone[row.result.status]"
-                :title="row.excluded ? 'Dette non rattrapée dans le délai imparti : ne peut plus se réinscrire à ce niveau.' : undefined"
-              >
-                <CircleXIcon v-if="row.excluded" aria-hidden="true" class="size-3" />
-                {{ row.excluded ? 'Exclu(e)' : ACADEMIC_STATUS_LABELS[row.result.status] }}
-              </Badge>
-            </TableCell>
-            <TableCell>
-              <div class="flex flex-wrap gap-1.5">
-                <Badge v-for="subj in row.result.failed_subjects" :key="subj.id" variant="destructive">
-                  {{ subj.name }}
-                </Badge>
-                <span v-if="row.result.failed_subjects.length === 0" class="text-xs opacity-50">—</span>
-              </div>
-            </TableCell>
-          </TableRow>
+          <TableRowsSkeleton :rows="5" :columns="4" />
         </TableBody>
       </Table>
+    </template>
+
+    <template v-else>
+      <Empty v-if="(annualResults ?? []).length === 0">
+        <EmptyTitle>Aucun résultat calculé</EmptyTitle>
+        <EmptyDescription>
+          Cliquez sur « Recalculer les résultats » pour générer les décisions annuelles de cette
+          classe.
+        </EmptyDescription>
+      </Empty>
+
+      <template v-else>
+        <div class="mb-5.5 grid grid-cols-2 gap-4" :class="statsGridClass">
+          <Card v-for="card in visibleStatCards" :key="card.key" class="px-4 py-3">
+            <div class="text-xs font-extrabold text-muted-foreground uppercase">{{ ACADEMIC_STATUS_LABELS[card.key] }}</div>
+            <div class="font-heading text-3xl font-extrabold">{{ card.count }}</div>
+          </Card>
+        </div>
+
+        <ToggleGroup v-model="filter" type="single" variant="outline" class="mb-4">
+          <ToggleGroupItem v-for="f in filterDefs" :key="f.key" :value="f.key" size="sm">
+            {{ f.label }}
+          </ToggleGroupItem>
+        </ToggleGroup>
+
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>#</TableHead>
+              <TableHead>Étudiant</TableHead>
+              <TableHead class="w-32">Décision</TableHead>
+              <TableHead>Matières non acquises</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            <TableEmpty v-if="rows.length === 0" :colspan="4">
+              <div class="text-center text-sm font-semibold text-muted-foreground">
+                Aucun étudiant dans ce filtre.
+              </div>
+            </TableEmpty>
+            <TableRow
+              v-for="row in rows"
+              :key="row.result.id"
+              interactive
+              @click="openTranscript(row.result.student_id)"
+            >
+              <TableCell class="font-bold">{{ row.result.student_id }}</TableCell>
+              <TableCell>
+                {{ row.student ? `${row.student.first_name} ${row.student.last_name ?? ''}` : `Étudiant #${row.result.student_id}` }}
+              </TableCell>
+              <TableCell>
+                <Badge
+                  :variant="statusTone[row.result.status]"
+                  :title="row.excluded ? 'Dette non rattrapée dans le délai imparti : ne peut plus se réinscrire à ce niveau.' : undefined"
+                >
+                  <CircleXIcon v-if="row.excluded" aria-hidden="true" class="size-3" />
+                  {{ row.excluded ? 'Exclu(e)' : ACADEMIC_STATUS_LABELS[row.result.status] }}
+                </Badge>
+              </TableCell>
+              <TableCell>
+                <div class="flex flex-wrap gap-1.5">
+                  <Badge v-for="subj in row.result.failed_subjects" :key="subj.id" variant="destructive">
+                    {{ subj.name }}
+                  </Badge>
+                  <span v-if="row.result.failed_subjects.length === 0" class="text-xs opacity-50">—</span>
+                </div>
+              </TableCell>
+            </TableRow>
+          </TableBody>
+        </Table>
+      </template>
     </template>
   </div>
 </template>

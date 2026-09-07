@@ -86,6 +86,25 @@
   box-shadow: 4px 4px 0 0 var(--background);
 }
 
+/* Diagonal hatch instead of a soft pulse: bg-muted ≈ bg-background here, so opacity alone is invisible. */
+@utility skeleton-stripes {
+  background-image: repeating-linear-gradient(45deg, #00000014 0, #00000014 1px, transparent 1px, transparent 8px);
+  background-size: 200% 200%;
+  animation: skeleton-shift 1.2s linear infinite;
+}
+
+@keyframes skeleton-shift {
+  to {
+    background-position: 16px 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton-stripes {
+    animation: none;
+  }
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
