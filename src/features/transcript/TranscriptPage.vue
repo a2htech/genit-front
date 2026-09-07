@@ -5,7 +5,7 @@ import { Badge } from '@/design-system/ui/badge'
 import { Button } from '@/design-system/ui/button'
 import { Empty, EmptyDescription, EmptyTitle } from '@/design-system/ui/empty'
 import { Input } from '@/design-system/ui/input'
-import { Spinner } from '@/design-system/ui/spinner'
+import { Skeleton } from '@/design-system/ui/skeleton'
 import { ToggleGroup, ToggleGroupItem } from '@/design-system/ui/toggle-group'
 import { LEVELS, useContextStore, type Level } from '@/features/academic-year'
 import { useStudentsQuery } from '@/features/student'
@@ -103,7 +103,22 @@ async function exportPdf() {
     <EmptyDescription>Recherchez un étudiant ci-dessus pour afficher son bulletin.</EmptyDescription>
   </Empty>
 
-  <Spinner v-else-if="isPending" class="mx-auto mt-12 size-8" />
+  <div v-else-if="isPending" class="border-2 border-border bg-card p-6 shadow-brutal-lg">
+    <Skeleton class="mx-auto h-4 w-56" />
+    <Skeleton class="mx-auto mt-2 h-5 w-72" />
+    <div class="mt-6 flex items-center gap-5">
+      <Skeleton class="size-18 shrink-0" />
+      <div class="flex-1">
+        <Skeleton class="h-6 w-48" />
+        <Skeleton class="mt-2 h-4 w-56" />
+      </div>
+    </div>
+    <div class="mt-6 flex flex-col gap-3">
+      <Skeleton class="h-16 w-full" />
+      <Skeleton class="h-16 w-full" />
+      <Skeleton class="h-16 w-full" />
+    </div>
+  </div>
 
   <Empty v-else-if="!transcript">
     <EmptyTitle>Pas assez de notes à ce niveau</EmptyTitle>

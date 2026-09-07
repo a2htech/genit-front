@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useRouter } from 'vue-router'
-import { Spinner } from '@/design-system/ui/spinner'
+import { Skeleton } from '@/design-system/ui/skeleton'
 import { ToggleGroup, ToggleGroupItem } from '@/design-system/ui/toggle-group'
 import { useCurrentAcademicYearQuery } from './academic-year.queries'
 import { useContextStore } from './context.store'
@@ -19,11 +19,11 @@ function selectLevel(value: unknown) {
 </script>
 
 <template>
-  <Spinner v-if="isPending" class="mx-auto mt-32 size-8" />
-  <div v-else class="mx-auto max-w-230 px-6 py-12">
+  <div class="mx-auto max-w-230 px-6 py-12">
     <div class="mb-9 text-center">
       <h1 class="font-heading mb-2 text-3xl font-extrabold">Bienvenue</h1>
-      <p class="text-sm font-medium text-muted-foreground">
+      <Skeleton v-if="isPending" class="mx-auto h-4 w-90" />
+      <p v-else class="text-sm font-medium text-muted-foreground">
         Choisissez votre niveau pour l'année universitaire {{ currentYear?.year }}. Ce contexte
         sera actif pour toute votre session.
       </p>

@@ -4,9 +4,11 @@ import { Badge } from '@/design-system/ui/badge'
 import { Button } from '@/design-system/ui/button'
 import { Empty, EmptyDescription, EmptyTitle } from '@/design-system/ui/empty'
 import { Field, FieldGroup, FieldLabel } from '@/design-system/ui/field'
+import { FullPageLoader } from '@/design-system/ui/full-page-loader'
 import { Input } from '@/design-system/ui/input'
 import { Pagination, PaginationContent, PaginationItem } from '@/design-system/ui/pagination'
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from '@/design-system/ui/select'
+import { Skeleton, StatCardSkeleton, TableRowsSkeleton } from '@/design-system/ui/skeleton'
 import { Spinner } from '@/design-system/ui/spinner'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/design-system/ui/table'
 import { ToggleGroup, ToggleGroupItem } from '@/design-system/ui/toggle-group'
@@ -102,6 +104,31 @@ const page = ref(1)
     <section class="mb-8">
       <h2 class="font-heading mb-3 text-base font-extrabold">Spinner</h2>
       <Spinner class="size-6" />
+    </section>
+
+    <section class="mb-8">
+      <h2 class="font-heading mb-3 text-base font-extrabold">Skeleton</h2>
+      <div class="mb-4 flex flex-col gap-2">
+        <Skeleton class="h-9 w-16" />
+        <Skeleton class="h-4 w-40" />
+      </div>
+      <div class="mb-4 grid grid-cols-1 gap-4.5 sm:grid-cols-3">
+        <StatCardSkeleton label="Étudiants" />
+        <StatCardSkeleton label="Matières" value-class="h-8 w-14" />
+      </div>
+      <Table>
+        <TableHeader>
+          <TableRow><TableHead>Colonne A</TableHead><TableHead>Colonne B</TableHead></TableRow>
+        </TableHeader>
+        <TableBody>
+          <TableRowsSkeleton :rows="3" :columns="2" />
+        </TableBody>
+      </Table>
+    </section>
+
+    <section class="mb-8">
+      <h2 class="font-heading mb-3 text-base font-extrabold">FullPageLoader</h2>
+      <FullPageLoader class="min-h-48 border-2 border-border" />
     </section>
 
     <section class="mb-8">

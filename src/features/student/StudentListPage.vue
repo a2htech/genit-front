@@ -15,7 +15,7 @@ import { Badge } from '@/design-system/ui/badge'
 import { Button } from '@/design-system/ui/button'
 import { Input } from '@/design-system/ui/input'
 import { Pagination, PaginationContent, PaginationItem } from '@/design-system/ui/pagination'
-import { Spinner } from '@/design-system/ui/spinner'
+import { TableRowsSkeleton } from '@/design-system/ui/skeleton'
 import { Table, TableBody, TableCell, TableEmpty, TableHead, TableHeader, TableRow } from '@/design-system/ui/table'
 import { useContextStore } from '@/features/academic-year'
 import { toApiError } from '@/shared/api/errors'
@@ -154,20 +154,25 @@ function openTranscript(s: Student) {
     {{ errorMessage }}
   </div>
 
-  <Spinner v-if="isPending && !data" class="mx-auto mt-12 size-8" />
-  <template v-else>
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead>#</TableHead>
-          <TableHead>Nom</TableHead>
-          <TableHead>Prénom</TableHead>
-          <TableHead>Naissance</TableHead>
-          <TableHead>Statut</TableHead>
-          <TableHead class="text-right">Actions</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
+  <Table>
+    <TableHeader>
+      <TableRow>
+        <TableHead>#</TableHead>
+        <TableHead>Nom</TableHead>
+        <TableHead>Prénom</TableHead>
+        <TableHead>Naissance</TableHead>
+        <TableHead>Statut</TableHead>
+        <TableHead class="text-right">Actions</TableHead>
+      </TableRow>
+    </TableHeader>
+    <TableBody>
+      <TableRowsSkeleton
+        v-if="isPending && !data"
+        :rows="5"
+        :columns="6"
+        :cell-class="['h-4 w-6', 'h-4 w-28', 'h-4 w-24', 'h-4 w-20', 'h-5 w-18', 'ml-auto h-4 w-24']"
+      />
+      <template v-else>
         <TableEmpty v-if="students.length === 0" :colspan="6">
           <div class="text-center text-sm font-semibold text-muted-foreground">
             Aucun étudiant trouvé — essayez une autre recherche ou ajoutez un nouvel étudiant.
@@ -192,17 +197,17 @@ function openTranscript(s: Student) {
             </div>
           </TableCell>
         </TableRow>
-      </TableBody>
-    </Table>
+      </template>
+    </TableBody>
+  </Table>
 
-    <Pagination v-if="totalPages > 1" v-model:page="page" :total="total" :items-per-page="PAGE_SIZE" class="mt-4.5">
-      <PaginationContent>
-        <PaginationItem v-for="p in pageNumbers" :key="p" :value="p" :is-active="p === page">
-          {{ p }}
-        </PaginationItem>
-      </PaginationContent>
-    </Pagination>
-  </template>
+  <Pagination v-if="totalPages > 1" v-model:page="page" :total="total" :items-per-page="PAGE_SIZE" class="mt-4.5">
+    <PaginationContent>
+      <PaginationItem v-for="p in pageNumbers" :key="p" :value="p" :is-active="p === page">
+        {{ p }}
+      </PaginationItem>
+    </PaginationContent>
+  </Pagination>
 
   <StudentFormModal
     v-model:open="modalOpen"

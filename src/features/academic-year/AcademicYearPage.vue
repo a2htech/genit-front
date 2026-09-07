@@ -12,7 +12,7 @@ import {
 } from '@/design-system/ui/dialog'
 import { Field, FieldLabel } from '@/design-system/ui/field'
 import { Input } from '@/design-system/ui/input'
-import { Spinner } from '@/design-system/ui/spinner'
+import { Skeleton } from '@/design-system/ui/skeleton'
 import { useCreateAcademicYearMutation, useCurrentAcademicYearQuery } from './academic-year.queries'
 
 const { data: currentYear, isPending } = useCurrentAcademicYearQuery()
@@ -37,16 +37,16 @@ async function confirmSwitch() {
 </script>
 
 <template>
-  <Spinner v-if="isPending" class="mx-auto mt-32 size-8" />
-  <div v-else>
+  <div>
     <h1 class="font-heading mb-5 text-2xl font-extrabold">Année universitaire</h1>
 
     <Card class="mb-6 flex-row flex-wrap items-center justify-between gap-4 px-5">
       <div>
         <div class="text-xs font-bold tracking-wide text-muted-foreground uppercase">Année active</div>
-        <div class="font-heading text-2xl font-extrabold">{{ currentYear?.year }}</div>
+        <Skeleton v-if="isPending" class="mt-1 h-8 w-20" />
+        <div v-else class="font-heading text-2xl font-extrabold">{{ currentYear?.year }}</div>
       </div>
-      <Button variant="destructive" @click="openSwitchConfirm">
+      <Button variant="destructive" :disabled="isPending" @click="openSwitchConfirm">
         Basculer vers l'année suivante
       </Button>
     </Card>
