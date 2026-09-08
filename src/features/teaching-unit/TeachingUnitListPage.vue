@@ -25,7 +25,7 @@ import {
   ComboboxTrigger,
   ComboboxViewport,
 } from '@/design-system/ui/combobox'
-import { Spinner } from '@/design-system/ui/spinner'
+import { Skeleton } from '@/design-system/ui/skeleton'
 import { ToggleGroup, ToggleGroupItem } from '@/design-system/ui/toggle-group'
 import { useContextStore } from '@/features/academic-year'
 import { toApiError } from '@/shared/api/errors'
@@ -140,8 +140,7 @@ async function confirmDelete() {
 </script>
 
 <template>
-  <Spinner v-if="isPending" class="mx-auto mt-32 size-8" />
-  <div v-else>
+  <div>
     <div class="mb-5 flex flex-wrap items-center justify-between gap-4">
       <h1 class="font-heading text-2xl font-extrabold">
         Unités d'enseignement — {{ context.level }} · Semestre {{ semester }}
@@ -155,67 +154,78 @@ async function confirmDelete() {
       {{ errorMessage }}
     </div>
 
-    <div v-for="unit in unitsForSemester" :key="unit.id" class="mb-4.5 border-2 border-border bg-card shadow-brutal-md">
-      <div class="flex cursor-pointer items-center gap-4 px-5 py-4.5" @click="toggleExpand(unit.id)">
-        <component :is="expandedUnit[unit.id] ? ChevronDownIcon : ChevronRightIcon" class="size-5 shrink-0" />
-        <div class="font-heading w-27.5 text-sm font-extrabold">{{ unit.code }}</div>
-        <div class="flex-1 text-[15px] font-semibold">{{ unit.name }}</div>
-        <div class="w-32.5 text-right text-sm font-semibold text-muted-foreground">
-          {{ unit.subjects.length }} matière{{ unit.subjects.length > 1 ? 's' : '' }}
-        </div>
+    <template v-if="isPending">
+      <div v-for="i in 3" :key="i" class="mb-4.5 flex items-center gap-4 border-2 border-border bg-card px-5 py-4.5 shadow-brutal-md">
+        <Skeleton class="size-5" />
+        <Skeleton class="h-4 w-27.5" />
+        <Skeleton class="h-4 flex-1" />
+        <Skeleton class="h-4 w-32.5" />
       </div>
+    </template>
 
-      <div v-if="expandedUnit[unit.id]" class="border-t-2 border-border bg-muted px-5 py-4.5 pl-14">
-        <div
-          v-for="subject in unit.subjects"
-          :key="subject.id"
-          class="flex items-center gap-3 border-b border-border/30 py-2.5 last:border-b-0"
-        >
-          <div class="h-5.5 w-1 bg-foreground" />
-          <div class="flex-1 text-sm">{{ subject.name }}</div>
-          <Badge variant="accent">{{ subject.credit }} crédits</Badge>
-          <div class="w-28 text-xs text-muted-foreground">{{ subject.hourly_vol }}h</div>
-          <div class="flex gap-1.5">
-            <Button emphasis="compact" size="sm" @click="openEditSubject(subject)">Éditer</Button>
-            <Button variant="destructive" emphasis="compact" size="sm" @click="askDelete(subject)">Suppr.</Button>
+    <template v-else>
+      <div v-for="unit in unitsForSemester" :key="unit.id" class="mb-4.5 border-2 border-border bg-card shadow-brutal-md">
+        <div class="flex cursor-pointer items-center gap-4 px-5 py-4.5" @click="toggleExpand(unit.id)">
+          <component :is="expandedUnit[unit.id] ? ChevronDownIcon : ChevronRightIcon" class="size-5 shrink-0" />
+          <div class="font-heading w-27.5 text-sm font-extrabold">{{ unit.code }}</div>
+          <div class="flex-1 text-[15px] font-semibold">{{ unit.name }}</div>
+          <div class="w-32.5 text-right text-sm font-semibold text-muted-foreground">
+            {{ unit.subjects.length }} matière{{ unit.subjects.length > 1 ? 's' : '' }}
           </div>
         </div>
-        <div v-if="unit.subjects.length === 0" class="py-2.5 text-sm text-muted-foreground">
-          Aucune matière rattachée.
-        </div>
 
-        <div class="mt-3.5 flex flex-wrap items-center gap-2.5">
-          <Combobox
-            v-if="availableFor(unit.id).length > 0"
-            :model-value="attachValue[unit.id]"
-            by="id"
-            @update:model-value="(v) => attach(unit.id, v as Subject | null)"
+        <div v-if="expandedUnit[unit.id]" class="border-t-2 border-border bg-muted px-5 py-4.5 pl-14">
+          <div
+            v-for="subject in unit.subjects"
+            :key="subject.id"
+            class="flex items-center gap-3 border-b border-border/30 py-2.5 last:border-b-0"
           >
-            <ComboboxAnchor as-child>
-              <ComboboxTrigger as-child>
-                <Button variant="outline" emphasis="compact" size="sm" role="combobox" class="justify-between gap-2 bg-card">
-                  + Rattacher une matière existante…
-                  <ChevronDownIcon class="size-4 shrink-0 opacity-50" />
-                </Button>
-              </ComboboxTrigger>
-            </ComboboxAnchor>
-            <ComboboxList align="start" class="w-72">
-              <ComboboxInput placeholder="Rechercher une matière…" />
-              <ComboboxViewport>
-                <ComboboxEmpty>Aucune matière trouvée.</ComboboxEmpty>
-                <ComboboxGroup>
-                  <ComboboxItem v-for="subject in availableFor(unit.id)" :key="subject.id" :value="subject">
-                    {{ subject.name }}
-                    <ComboboxItemIndicator><CheckIcon /></ComboboxItemIndicator>
-                  </ComboboxItem>
-                </ComboboxGroup>
-              </ComboboxViewport>
-            </ComboboxList>
-          </Combobox>
-          <Button emphasis="compact" size="sm" @click="openNewSubject(unit.id)">+ Nouvelle matière</Button>
+            <div class="h-5.5 w-1 bg-foreground" />
+            <div class="flex-1 text-sm">{{ subject.name }}</div>
+            <Badge variant="accent">{{ subject.credit }} crédits</Badge>
+            <div class="w-28 text-xs text-muted-foreground">{{ subject.hourly_vol }}h</div>
+            <div class="flex gap-1.5">
+              <Button emphasis="compact" size="sm" @click="openEditSubject(subject)">Éditer</Button>
+              <Button variant="destructive" emphasis="compact" size="sm" @click="askDelete(subject)">Suppr.</Button>
+            </div>
+          </div>
+          <div v-if="unit.subjects.length === 0" class="py-2.5 text-sm text-muted-foreground">
+            Aucune matière rattachée.
+          </div>
+
+          <div class="mt-3.5 flex flex-wrap items-center gap-2.5">
+            <Combobox
+              v-if="availableFor(unit.id).length > 0"
+              :model-value="attachValue[unit.id]"
+              by="id"
+              @update:model-value="(v) => attach(unit.id, v as Subject | null)"
+            >
+              <ComboboxAnchor as-child>
+                <ComboboxTrigger as-child>
+                  <Button variant="outline" emphasis="compact" size="sm" role="combobox" class="justify-between gap-2 bg-card">
+                    + Rattacher une matière existante…
+                    <ChevronDownIcon class="size-4 shrink-0 opacity-50" />
+                  </Button>
+                </ComboboxTrigger>
+              </ComboboxAnchor>
+              <ComboboxList align="start" class="w-72">
+                <ComboboxInput placeholder="Rechercher une matière…" />
+                <ComboboxViewport>
+                  <ComboboxEmpty>Aucune matière trouvée.</ComboboxEmpty>
+                  <ComboboxGroup>
+                    <ComboboxItem v-for="subject in availableFor(unit.id)" :key="subject.id" :value="subject">
+                      {{ subject.name }}
+                      <ComboboxItemIndicator><CheckIcon /></ComboboxItemIndicator>
+                    </ComboboxItem>
+                  </ComboboxGroup>
+                </ComboboxViewport>
+              </ComboboxList>
+            </Combobox>
+            <Button emphasis="compact" size="sm" @click="openNewSubject(unit.id)">+ Nouvelle matière</Button>
+          </div>
         </div>
       </div>
-    </div>
+    </template>
 
     <SubjectFormModal
       v-model:open="modalOpen"
