@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { computed, reactive, ref, watch, watchEffect } from 'vue'
 import { useRouter } from 'vue-router'
-import { CheckIcon, ChevronDownIcon } from '@lucide/vue'
+import { refDebounced } from '@vueuse/core'
+import { CheckIcon, ChevronDownIcon, PlusIcon, XIcon } from '@lucide/vue'
+import { Badge } from '@/design-system/ui/badge'
 import { Button } from '@/design-system/ui/button'
 import {
   Combobox,
@@ -17,15 +19,29 @@ import {
 } from '@/design-system/ui/combobox'
 import { Input } from '@/design-system/ui/input'
 import { Skeleton, TableRowsSkeleton } from '@/design-system/ui/skeleton'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/design-system/ui/table'
+import { Spinner } from '@/design-system/ui/spinner'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableFooter,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/design-system/ui/table'
 import { ToggleGroup, ToggleGroupItem } from '@/design-system/ui/toggle-group'
 import { useContextStore, useCurrentAcademicYearQuery } from '@/features/academic-year'
 import { useTeachingUnitsQuery, type Subject } from '@/features/teaching-unit'
-import { useStudentsQuery } from '@/features/student'
+import { type Student } from '@/features/student'
 import { toApiError } from '@/shared/api/errors'
 import { isFailingScore } from '@/shared/utils/format'
-import { useScoresQuery, useStoreScoresMutation, useUpdateScoreMutation } from './score.queries'
-import type { ExamSession, Score } from './score.types'
+import {
+  useEligibleStudentsQuery,
+  useRetakeEligibleStudentsQuery,
+  useStoreScoresMutation,
+  useUpdateScoreMutation,
+} from './score.queries'
+import type { ExamSession } from './score.types'
 
 const errorMessage = ref<string | null>(null)
 
@@ -46,13 +62,16 @@ watchEffect(() => {
 })
 
 const session = ref<ExamSession>('normale')
+function onSessionChange(value: unknown) {
+  if (!value) return
+  session.value = value as ExamSession
+}
 
-const { data: students, isPending: studentsPending } = useStudentsQuery()
-const { data: existingScores, isPending: scoresPending } = useScoresQuery(subjectId, session, classYear)
-const storeMutation = useStoreScoresMutation(subjectId, session, classYear)
-const updateMutation = useUpdateScoreMutation(subjectId, session, classYear)
+const { data: eligibleStudents, isPending: eligibleStudentsPending } = useEligibleStudentsQuery(subjectId)
+const storeMutation = useStoreScoresMutation(subjectId)
+const updateMutation = useUpdateScoreMutation(subjectId)
 
-const isPending = computed(() => subjectsPending.value || studentsPending.value)
+const isPending = computed(() => subjectsPending.value)
 
 const currentSubject = computed(() => subjects.value.find((s) => s.id === subjectId.value) ?? null)
 const currentUnit = computed(
@@ -60,26 +79,60 @@ const currentUnit = computed(
 )
 const subjectLabel = computed(() => (currentSubject.value ? `${currentSubject.value.name}` : ''))
 
-const existingByStudent = computed(() => {
-  const map = new Map<number, Score>()
-  for (const s of existingScores.value ?? []) map.set(s.student_id, s)
-  return map
+const sessionStudents = computed(() => {
+  if (!eligibleStudents.value) return []
+  return session.value === 'normale' ? eligibleStudents.value.regularSession : eligibleStudents.value.retakeSession
 })
+
+/** Étudiants ajoutés manuellement (rattrapage volontaire), en plus de la liste retournée par le back. */
+const addedStudents = ref<Student[]>([])
 
 /** Brouillon local des lignes non encore envoyées (aucun score existant côté back pour ce couple étudiant/matière). */
 const drafts = reactive<Record<number, number | null>>({})
 watch([subjectId, session], () => {
   for (const key of Object.keys(drafts)) delete drafts[Number(key)]
+  addedStudents.value = []
 })
 
-const rows = computed(
-  () => (students.value ?? []).map((s) => ({ student: s, existing: existingByStudent.value.get(s.id) ?? null })),
+const rows = computed(() => {
+  const base = sessionStudents.value.map((s) => ({
+    studentId: Number(s.id),
+    student: s,
+    existing: s.score,
+    isAdded: false,
+  }))
+  if (session.value !== 'rattrapage' || addedStudents.value.length === 0) return base
+  const extra = addedStudents.value.map((s) => ({ studentId: s.id, student: s, existing: null, isAdded: true }))
+  return [...base, ...extra]
+})
+
+const studentSearch = ref('')
+const debouncedStudentSearch = refDebounced(studentSearch, 300)
+const isRattrapage = computed(() => session.value === 'rattrapage')
+const { data: retakeSearchResults, isFetching: retakeSearchPending } = useRetakeEligibleStudentsQuery(
+  subjectId,
+  debouncedStudentSearch,
+  isRattrapage,
+)
+const retakeSearchOptions = computed(() =>
+  (retakeSearchResults.value ?? []).filter((s) => !addedStudents.value.some((a) => a.id === s.id)),
 )
 
+function onAddStudent(value: unknown) {
+  const student = value as Student | undefined
+  if (!student) return
+  addedStudents.value = [...addedStudents.value, student]
+  studentSearch.value = ''
+}
+
+function removeAddedStudent(studentId: number) {
+  addedStudents.value = addedStudents.value.filter((s) => s.id !== studentId)
+  delete drafts[studentId]
+}
+
 const filledDraftsCount = computed(() => Object.values(drafts).filter((v) => typeof v === 'number').length)
-const progressLabel = computed(
-  () => `${(existingScores.value?.length ?? 0) + filledDraftsCount.value}/${rows.value.length}`,
-)
+const filledExistingCount = computed(() => rows.value.filter((r) => r.existing !== null).length)
+const progressLabel = computed(() => `${filledExistingCount.value + filledDraftsCount.value}/${rows.value.length}`)
 
 function onExistingInput(scoreId: number, raw: string | number) {
   const value = raw === '' ? null : Number(raw)
@@ -121,7 +174,9 @@ async function save() {
     errorMessage.value = toApiError(e).message
     return
   }
+  const savedIds = new Set(scores.map((s) => s.student_id))
   for (const key of Object.keys(drafts)) delete drafts[Number(key)]
+  addedStudents.value = addedStudents.value.filter((s) => !savedIds.has(s.id))
 }
 
 function finish() {
@@ -171,7 +226,7 @@ function finish() {
       </div>
       <div>
         <div class="mb-1.5 text-xs font-bold tracking-wide uppercase">Session</div>
-        <ToggleGroup v-model="session" type="single" variant="outline">
+        <ToggleGroup :model-value="session" type="single" variant="outline" @update:model-value="onSessionChange">
           <ToggleGroupItem value="normale">Normale</ToggleGroupItem>
           <ToggleGroupItem value="rattrapage">Rattrapage</ToggleGroupItem>
         </ToggleGroup>
@@ -203,14 +258,17 @@ function finish() {
       </TableHeader>
       <TableBody>
         <TableRowsSkeleton
-          v-if="isPending || scoresPending"
+          v-if="isPending || eligibleStudentsPending"
           :rows="6"
           :columns="2"
           :cell-class="['h-4 w-40', 'h-9 w-full']"
         />
         <template v-else>
-          <TableRow v-for="(row, index) in rows" :key="row.student.id">
-            <TableCell>{{ row.student.first_name }} {{ row.student.last_name }}</TableCell>
+          <TableRow v-for="(row, index) in rows" :key="row.studentId">
+            <TableCell>
+              {{ row.student.first_name }} {{ row.student.last_name }}
+              <Badge v-if="row.isAdded" variant="accent" class="ml-2">Ajouté</Badge>
+            </TableCell>
             <TableCell>
               <Input
                 v-if="row.existing"
@@ -226,24 +284,68 @@ function finish() {
                 @update:model-value="(v) => onExistingInput(row.existing!.id, v ?? '')"
                 @keydown="(e: KeyboardEvent) => onKeydown(e, index)"
               />
-              <Input
-                v-else
-                :id="`grade-input-${index}`"
-                type="number"
-                :min="0"
-                :max="20"
-                :step="0.5"
-                placeholder="—"
-                class="text-center font-bold"
-                :class="isFailingScore(drafts[row.student.id] ?? null) ? 'text-destructive' : ''"
-                :model-value="drafts[row.student.id] ?? ''"
-                @update:model-value="(v) => onDraftInput(row.student.id, v ?? '')"
-                @keydown="(e: KeyboardEvent) => onKeydown(e, index)"
-              />
+              <div v-else class="flex items-center gap-2">
+                <Input
+                  :id="`grade-input-${index}`"
+                  type="number"
+                  :min="0"
+                  :max="20"
+                  :step="0.5"
+                  placeholder="—"
+                  class="text-center font-bold"
+                  :class="isFailingScore(drafts[row.studentId] ?? null) ? 'text-destructive' : ''"
+                  :model-value="drafts[row.studentId] ?? ''"
+                  @update:model-value="(v) => onDraftInput(row.studentId, v ?? '')"
+                  @keydown="(e: KeyboardEvent) => onKeydown(e, index)"
+                />
+                <Button
+                  v-if="row.isAdded"
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  emphasis="compact"
+                  aria-label="Retirer cet étudiant"
+                  @click="removeAddedStudent(row.studentId)"
+                >
+                  <XIcon />
+                </Button>
+              </div>
             </TableCell>
           </TableRow>
         </template>
       </TableBody>
+      <TableFooter v-if="isRattrapage">
+        <TableRow>
+          <TableCell colspan="2">
+            <Combobox :model-value="null" ignore-filter by="id" @update:model-value="onAddStudent">
+              <ComboboxAnchor as-child>
+                <ComboboxTrigger as-child>
+                  <button
+                    type="button"
+                    class="flex w-full items-center gap-2 py-1 text-sm font-bold text-muted-foreground hover:text-foreground"
+                  >
+                    <PlusIcon class="size-4" />
+                    Ajouter un étudiant au rattrapage
+                  </button>
+                </ComboboxTrigger>
+              </ComboboxAnchor>
+              <ComboboxList align="start" class="w-75">
+                <ComboboxInput v-model="studentSearch" placeholder="Nom de l'étudiant…" />
+                <ComboboxViewport>
+                  <ComboboxEmpty>
+                    <Spinner v-if="retakeSearchPending" class="size-4" />
+                    <span v-else>Aucun étudiant trouvé.</span>
+                  </ComboboxEmpty>
+                  <ComboboxItem v-for="s in retakeSearchOptions" :key="s.id" :value="s">
+                    {{ s.first_name }} {{ s.last_name }}
+                    <ComboboxItemIndicator><CheckIcon /></ComboboxItemIndicator>
+                  </ComboboxItem>
+                </ComboboxViewport>
+              </ComboboxList>
+            </Combobox>
+          </TableCell>
+        </TableRow>
+      </TableFooter>
     </Table>
 
     <div class="fixed inset-x-0 bottom-0 z-30 flex justify-end gap-3.5 bg-foreground px-6 py-4">
