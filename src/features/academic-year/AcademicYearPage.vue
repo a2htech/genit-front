@@ -13,10 +13,27 @@ import {
 import { Field, FieldLabel } from '@/design-system/ui/field'
 import { Input } from '@/design-system/ui/input'
 import { Skeleton } from '@/design-system/ui/skeleton'
+import { useCalculateAllAnnualResultsMutation, useMissingAnnualResultsQuery } from '@/features/transcript'
+import { toApiError } from '@/shared/api/errors'
 import { useCreateAcademicYearMutation, useCurrentAcademicYearQuery } from './academic-year.queries'
 
 const { data: currentYear, isPending } = useCurrentAcademicYearQuery()
 const createMutation = useCreateAcademicYearMutation()
+
+const { data: missingResults, isPending: missingPending } = useMissingAnnualResultsQuery()
+const hasMissingResults = computed(() => (missingResults.value ?? []).length > 0)
+
+const calculateMutation = useCalculateAllAnnualResultsMutation()
+const calculateErrorMessage = ref<string | null>(null)
+
+async function calculateMissingResults() {
+  calculateErrorMessage.value = null
+  try {
+    await calculateMutation.mutateAsync()
+  } catch (e) {
+    calculateErrorMessage.value = toApiError(e).message
+  }
+}
 
 const nextYear = computed(() => (currentYear.value ? currentYear.value.year + 1 : null))
 
@@ -46,10 +63,23 @@ async function confirmSwitch() {
         <Skeleton v-if="isPending" class="mt-1 h-8 w-20" />
         <div v-else class="font-heading text-2xl font-extrabold">{{ currentYear?.year }}</div>
       </div>
-      <Button variant="destructive" :disabled="isPending" @click="openSwitchConfirm">
+      <Skeleton v-if="missingPending" class="h-11 w-56" />
+      <Button
+        v-else-if="hasMissingResults"
+        variant="secondary"
+        :disabled="calculateMutation.isPending.value"
+        @click="calculateMissingResults"
+      >
+        {{ calculateMutation.isPending.value ? 'Calcul en cours…' : 'Calculer les résultats' }}
+      </Button>
+      <Button v-else variant="destructive" :disabled="isPending" @click="openSwitchConfirm">
         Basculer vers l'année suivante
       </Button>
     </Card>
+
+    <div v-if="calculateErrorMessage" class="mb-6 border-2 border-destructive bg-destructive/10 p-3 text-sm font-semibold text-destructive">
+      {{ calculateErrorMessage }}
+    </div>
 
     <div class="border-2 border-border bg-muted p-3.5 text-sm leading-relaxed text-muted-foreground">
       L'historique des années archivées n'est pas encore disponible côté serveur.

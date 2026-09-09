@@ -1,6 +1,7 @@
 import { isAxiosError } from 'axios'
 import { apiClient } from '@/shared/api/client'
 import type { Level } from '@/features/academic-year'
+import type { Student } from '@/features/student'
 import type { AnnualResult, Transcript } from './transcript.types'
 
 export async function fetchTranscript(studentId: number): Promise<Transcript> {
@@ -27,6 +28,16 @@ export async function fetchAnnualResults(level: Level): Promise<AnnualResult[]> 
 /** Job lancé côté back (synchrone ou en file selon QUEUE_CONNECTION) ; le front se contente d'invalider la liste après. */
 export async function calculateAnnualResultsForClass(level: Level): Promise<void> {
   await apiClient.post(`/students/annual-results/${level}/calculate`)
+}
+
+export async function fetchStudentsMissingAnnualResults(): Promise<Student[]> {
+  const { data } = await apiClient.get<{ data: Student[] }>('/students/annual-results/missing')
+  return data.data
+}
+
+/** Recalcule pour tous les niveaux : usage volontairement global, réservé au blocage de bascule d'année. */
+export async function calculateAllAnnualResults(): Promise<void> {
+  await apiClient.post('/students/annual-results/calculate-all')
 }
 
 export async function downloadTranscriptPdf(studentId: number): Promise<void> {
