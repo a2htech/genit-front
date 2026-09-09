@@ -25,8 +25,8 @@ export async function fetchAnnualResults(level: Level): Promise<AnnualResult[]> 
 }
 
 /** Job lancé côté back (synchrone ou en file selon QUEUE_CONNECTION) ; le front se contente d'invalider la liste après. */
-export async function calculateAllAnnualResults(): Promise<void> {
-  await apiClient.post('/students/annual-results/calculate-all')
+export async function calculateAnnualResultsForClass(level: Level): Promise<void> {
+  await apiClient.post(`/students/annual-results/${level}/calculate`)
 }
 
 export async function downloadTranscriptPdf(studentId: number): Promise<void> {

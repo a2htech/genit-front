@@ -1,7 +1,7 @@
 import { type Ref, computed } from 'vue'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import { useContextStore, type Level } from '@/features/academic-year'
-import { calculateAllAnnualResults, fetchAnnualResults, fetchTranscript, fetchTranscriptForClass } from './transcript.api'
+import { calculateAnnualResultsForClass, fetchAnnualResults, fetchTranscript, fetchTranscriptForClass } from './transcript.api'
 
 /** Le niveau courant de l'étudiant est toujours celui du contexte (la recherche ne liste que ce niveau-là). */
 export function useTranscriptQuery(studentId: Ref<number | null>, levelView: Ref<Level | null>) {
@@ -30,11 +30,11 @@ export function useAnnualResultsQuery() {
   })
 }
 
-export function useCalculateAllAnnualResultsMutation() {
+export function useCalculateAnnualResultsForClassMutation() {
   const context = useContextStore()
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: calculateAllAnnualResults,
+    mutationFn: () => calculateAnnualResultsForClass(context.level!),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: annualResultsKey(context.level) }),
   })
 }
