@@ -5,7 +5,7 @@ import { clerkPlugin, useAuth } from '@clerk/vue'
 import App from './App.vue'
 import router from '@/app/router'
 import { VueQueryPlugin, queryClient } from '@/app/plugins/query'
-import { currentAcademicYearKey } from '@/features/academic-year'
+import { currentAcademicYearKey, useContextStore } from '@/features/academic-year'
 import { clerkAppearance } from '@/features/auth'
 import { setAuthTokenProvider, setUnauthorizedHandler } from '@/shared/api/client'
 import '@/app/styles/main.css'
@@ -17,7 +17,8 @@ if (!CLERK_PUBLISHABLE_KEY) {
 
 function bootstrap() {
   const app = createApp(App)
-  app.use(createPinia())
+  const pinia = createPinia()
+  app.use(pinia)
   app.use(clerkPlugin, {
     publishableKey: CLERK_PUBLISHABLE_KEY,
     appearance: clerkAppearance,
@@ -35,6 +36,7 @@ function bootstrap() {
   watch(isSignedIn, (signedIn, wasSignedIn) => {
     if (wasSignedIn && !signedIn) {
       queryClient.removeQueries({ queryKey: currentAcademicYearKey })
+      useContextStore(pinia).reset()
     }
   })
 
