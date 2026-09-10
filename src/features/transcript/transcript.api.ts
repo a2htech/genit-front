@@ -2,7 +2,7 @@ import { isAxiosError } from 'axios'
 import { apiClient } from '@/shared/api/client'
 import type { Level } from '@/features/academic-year'
 import type { Student } from '@/features/student'
-import type { AnnualResult, Transcript } from './transcript.types'
+import type { AnnualResult, AnnualResultsSummary, Transcript } from './transcript.types'
 
 export async function fetchTranscript(studentId: number): Promise<Transcript> {
   const { data } = await apiClient.get<{ data: Transcript }>(`/transcripts/${studentId}`)
@@ -28,6 +28,12 @@ export async function fetchAnnualResults(level: Level): Promise<AnnualResult[]> 
 /** Job lancé côté back (synchrone ou en file selon QUEUE_CONNECTION) ; le front se contente d'invalider la liste après. */
 export async function calculateAnnualResultsForClass(level: Level): Promise<void> {
   await apiClient.post(`/students/annual-results/${level}/calculate`)
+}
+
+/** Réponse renvoyée telle quelle par le back (pas d'enveloppe `data`). */
+export async function fetchAnnualResultsSummary(): Promise<AnnualResultsSummary> {
+  const { data } = await apiClient.get<AnnualResultsSummary>('/students/annual-results/summary')
+  return data
 }
 
 export async function fetchStudentsMissingAnnualResults(): Promise<Student[]> {

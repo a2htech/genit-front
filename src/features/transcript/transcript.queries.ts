@@ -5,6 +5,7 @@ import {
   calculateAllAnnualResults,
   calculateAnnualResultsForClass,
   fetchAnnualResults,
+  fetchAnnualResultsSummary,
   fetchStudentsMissingAnnualResults,
   fetchTranscript,
   fetchTranscriptForClass,
@@ -27,6 +28,8 @@ function annualResultsKey(level: string | null) {
   return ['annual-results', level] as const
 }
 
+const annualResultsSummaryKey = ['annual-results', 'summary'] as const
+
 export function useAnnualResultsQuery() {
   const context = useContextStore()
   const level = computed(() => context.level)
@@ -42,7 +45,17 @@ export function useCalculateAnnualResultsForClassMutation() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: () => calculateAnnualResultsForClass(context.level!),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: annualResultsKey(context.level) }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: annualResultsKey(context.level) })
+      queryClient.invalidateQueries({ queryKey: annualResultsSummaryKey })
+    },
+  })
+}
+
+export function useAnnualResultsSummaryQuery() {
+  return useQuery({
+    queryKey: annualResultsSummaryKey,
+    queryFn: fetchAnnualResultsSummary,
   })
 }
 
