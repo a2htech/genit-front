@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { useRoute } from 'vue-router'
 import { UserButton } from '@clerk/vue'
 import { ChevronDownIcon, GraduationCapIcon } from '@lucide/vue'
 import {
@@ -15,7 +15,6 @@ import { LEVELS, useContextStore, useCurrentAcademicYearQuery, type Level } from
 import { useAuthStore } from '@/features/auth'
 
 const route = useRoute()
-const router = useRouter()
 const context = useContextStore()
 const auth = useAuthStore()
 const { data: currentYear } = useCurrentAcademicYearQuery()
@@ -32,11 +31,6 @@ const navItems: { name: string; label: string }[] = [
 
 function selectLevel(n: Level) {
   context.setLevel(n)
-}
-
-function changeContext() {
-  context.reset()
-  router.push({ name: 'context-setup' })
 }
 </script>
 
@@ -86,17 +80,6 @@ function changeContext() {
                 >
                   {{ n.value }} — {{ n.label }}
                 </DropdownMenuItem>
-              </DropdownMenuGroup>
-            </DropdownMenuContent>
-          </DropdownMenu>
-
-          <DropdownMenu>
-            <DropdownMenuTrigger class="flex items-center gap-1 border-2 border-border bg-card px-2.5 py-1.5 text-xs font-bold">
-              Contexte <ChevronDownIcon class="size-3" />
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuGroup>
-                <DropdownMenuItem @select="changeContext">Changer de contexte</DropdownMenuItem>
               </DropdownMenuGroup>
             </DropdownMenuContent>
           </DropdownMenu>
