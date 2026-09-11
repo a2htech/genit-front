@@ -13,6 +13,10 @@
     "lint:oxlint": "oxlint . --fix",
     "lint:eslint": "eslint . --fix --cache",
     "format": "prettier --write --experimental-cli src/",
+    "check": "run-s \"check:*\"",
+    "check:oxlint": "oxlint .",
+    "check:eslint": "eslint .",
+    "check:format": "prettier --check --experimental-cli src/",
     "prepare": "husky"
   },
   "dependencies": {
