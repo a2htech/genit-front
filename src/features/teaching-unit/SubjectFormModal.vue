@@ -72,9 +72,7 @@ function submit() {
       </FieldGroup>
 
       <DialogFooter>
-        <Button variant="secondary" emphasis="compact" @click="emit('update:open', false)">
-          Annuler
-        </Button>
+        <Button variant="secondary" emphasis="compact" @click="emit('update:open', false)"> Annuler </Button>
         <Button :disabled="saving" @click="submit">Enregistrer</Button>
       </DialogFooter>
     </DialogContent>

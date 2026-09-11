@@ -4,13 +4,16 @@ import { Card } from '@/design-system/ui/card'
 import { cn } from '@/shared/lib/utils'
 import Skeleton from './Skeleton.vue'
 
-const props = withDefaults(defineProps<{
-  label: string
-  class?: HTMLAttributes['class']
-  valueClass?: HTMLAttributes['class']
-}>(), {
-  valueClass: 'h-9 w-16',
-})
+const props = withDefaults(
+  defineProps<{
+    label: string
+    class?: HTMLAttributes['class']
+    valueClass?: HTMLAttributes['class']
+  }>(),
+  {
+    valueClass: 'h-9 w-16',
+  },
+)
 </script>
 
 <template>

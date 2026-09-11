@@ -47,7 +47,9 @@ function pct(value: number): number {
       />
     </div>
     <div class="flex flex-wrap gap-2">
-      <Badge v-for="s in segments" :key="s.key" :variant="s.variant">{{ s.label }} · {{ s.value }} ({{ pct(s.value) }}%)</Badge>
+      <Badge v-for="s in segments" :key="s.key" :variant="s.variant"
+        >{{ s.label }} · {{ s.value }} ({{ pct(s.value) }}%)</Badge
+      >
     </div>
   </div>
 </template>

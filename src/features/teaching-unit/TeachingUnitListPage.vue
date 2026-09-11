@@ -150,12 +150,19 @@ async function confirmDelete() {
       </ToggleGroup>
     </div>
 
-    <div v-if="errorMessage" class="mb-4 border-2 border-destructive bg-destructive/10 p-3 text-sm font-semibold text-destructive">
+    <div
+      v-if="errorMessage"
+      class="mb-4 border-2 border-destructive bg-destructive/10 p-3 text-sm font-semibold text-destructive"
+    >
       {{ errorMessage }}
     </div>
 
     <template v-if="isPending">
-      <div v-for="i in 3" :key="i" class="mb-4.5 flex items-center gap-4 border-2 border-border bg-card px-5 py-4.5 shadow-brutal-md">
+      <div
+        v-for="i in 3"
+        :key="i"
+        class="mb-4.5 flex items-center gap-4 border-2 border-border bg-card px-5 py-4.5 shadow-brutal-md"
+      >
         <Skeleton class="size-5" />
         <Skeleton class="h-4 w-27.5" />
         <Skeleton class="h-4 flex-1" />
@@ -164,10 +171,14 @@ async function confirmDelete() {
     </template>
 
     <template v-else>
-      <div v-for="unit in unitsForSemester" :key="unit.id" class="mb-4.5 border-2 border-border bg-card shadow-brutal-md">
+      <div
+        v-for="unit in unitsForSemester"
+        :key="unit.id"
+        class="mb-4.5 border-2 border-border bg-card shadow-brutal-md"
+      >
         <div class="flex cursor-pointer items-center gap-4 px-5 py-4.5" @click="toggleExpand(unit.id)">
           <component :is="expandedUnit[unit.id] ? ChevronDownIcon : ChevronRightIcon" class="size-5 shrink-0" />
-          <div class="font-heading w-27.5 text-sm font-extrabold">{{ unit.code }}</div>
+          <div class="w-27.5 font-heading text-sm font-extrabold">{{ unit.code }}</div>
           <div class="flex-1 text-[15px] font-semibold">{{ unit.name }}</div>
           <div class="w-32.5 text-right text-sm font-semibold text-muted-foreground">
             {{ unit.subjects.length }} matière{{ unit.subjects.length > 1 ? 's' : '' }}
@@ -202,7 +213,13 @@ async function confirmDelete() {
             >
               <ComboboxAnchor as-child>
                 <ComboboxTrigger as-child>
-                  <Button variant="outline" emphasis="compact" size="sm" role="combobox" class="justify-between gap-2 bg-card">
+                  <Button
+                    variant="outline"
+                    emphasis="compact"
+                    size="sm"
+                    role="combobox"
+                    class="justify-between gap-2 bg-card"
+                  >
                     + Rattacher une matière existante…
                     <ChevronDownIcon class="size-4 shrink-0 opacity-50" />
                   </Button>

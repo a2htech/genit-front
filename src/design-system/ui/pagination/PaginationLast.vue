@@ -9,12 +9,17 @@ import { PaginationLast, useForwardProps } from 'reka-ui'
 import { cn } from '@/shared/lib/utils'
 import { buttonVariants } from '@/design-system/ui/button'
 
-const props = withDefaults(defineProps<PaginationLastProps & {
-  size?: ButtonVariants['size']
-  class?: HTMLAttributes['class']
-}>(), {
-  size: 'sm',
-})
+const props = withDefaults(
+  defineProps<
+    PaginationLastProps & {
+      size?: ButtonVariants['size']
+      class?: HTMLAttributes['class']
+    }
+  >(),
+  {
+    size: 'sm',
+  },
+)
 
 const delegatedProps = reactiveOmit(props, 'class', 'size')
 const forwarded = useForwardProps(delegatedProps)

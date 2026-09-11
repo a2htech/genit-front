@@ -100,7 +100,10 @@ function openTranscript(studentId: number) {
       </Button>
     </div>
 
-    <div v-if="errorMessage" class="mb-4 border-2 border-destructive bg-destructive/10 p-3 text-sm font-semibold text-destructive">
+    <div
+      v-if="errorMessage"
+      class="mb-4 border-2 border-destructive bg-destructive/10 p-3 text-sm font-semibold text-destructive"
+    >
       {{ errorMessage }}
     </div>
 
@@ -134,15 +137,16 @@ function openTranscript(studentId: number) {
       <Empty v-if="(annualResults ?? []).length === 0">
         <EmptyTitle>Aucun résultat calculé</EmptyTitle>
         <EmptyDescription>
-          Cliquez sur « Recalculer les résultats » pour générer les décisions annuelles de cette
-          classe.
+          Cliquez sur « Recalculer les résultats » pour générer les décisions annuelles de cette classe.
         </EmptyDescription>
       </Empty>
 
       <template v-else>
         <div class="mb-5.5 grid grid-cols-2 gap-4" :class="statsGridClass">
           <Card v-for="card in visibleStatCards" :key="card.key" class="px-4 py-3">
-            <div class="text-xs font-extrabold text-muted-foreground uppercase">{{ ACADEMIC_STATUS_LABELS[card.key] }}</div>
+            <div class="text-xs font-extrabold text-muted-foreground uppercase">
+              {{ ACADEMIC_STATUS_LABELS[card.key] }}
+            </div>
             <div class="font-heading text-3xl font-extrabold">{{ card.count }}</div>
           </Card>
         </div>
@@ -164,9 +168,7 @@ function openTranscript(studentId: number) {
           </TableHeader>
           <TableBody>
             <TableEmpty v-if="rows.length === 0" :colspan="4">
-              <div class="text-center text-sm font-semibold text-muted-foreground">
-                Aucun étudiant dans ce filtre.
-              </div>
+              <div class="text-center text-sm font-semibold text-muted-foreground">Aucun étudiant dans ce filtre.</div>
             </TableEmpty>
             <TableRow
               v-for="row in rows"
@@ -176,12 +178,20 @@ function openTranscript(studentId: number) {
             >
               <TableCell class="font-bold">{{ row.result.student_id }}</TableCell>
               <TableCell>
-                {{ row.student ? `${row.student.first_name} ${row.student.last_name ?? ''}` : `Étudiant #${row.result.student_id}` }}
+                {{
+                  row.student
+                    ? `${row.student.first_name} ${row.student.last_name ?? ''}`
+                    : `Étudiant #${row.result.student_id}`
+                }}
               </TableCell>
               <TableCell>
                 <Badge
                   :variant="statusTone[row.result.status]"
-                  :title="row.excluded ? 'Dette non rattrapée dans le délai imparti : ne peut plus se réinscrire à ce niveau.' : undefined"
+                  :title="
+                    row.excluded
+                      ? 'Dette non rattrapée dans le délai imparti : ne peut plus se réinscrire à ce niveau.'
+                      : undefined
+                  "
                 >
                   <CircleXIcon v-if="row.excluded" aria-hidden="true" class="size-3" />
                   {{ row.excluded ? 'Exclu(e)' : ACADEMIC_STATUS_LABELS[row.result.status] }}

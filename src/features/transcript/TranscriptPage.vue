@@ -79,7 +79,7 @@ async function exportPdf() {
 </script>
 
 <template>
-  <h1 class="font-heading mb-5 text-2xl font-extrabold">Bulletin</h1>
+  <h1 class="mb-5 font-heading text-2xl font-extrabold">Bulletin</h1>
 
   <div class="relative mb-6.5 max-w-115">
     <Input v-model="search" placeholder="Rechercher un étudiant par nom…" @input="onSearchChange" />
@@ -130,13 +130,15 @@ async function exportPdf() {
       <div class="text-[11px] font-bold tracking-wide text-muted-foreground uppercase">
         Université — Mention Informatique
       </div>
-      <div class="font-heading mt-1 text-base font-extrabold">
+      <div class="mt-1 font-heading text-base font-extrabold">
         Fiche individuelle de résultats — {{ transcript.student.class }}
       </div>
     </div>
 
     <div class="flex flex-wrap items-center gap-5 border-b-2 border-border p-6">
-      <div class="font-heading flex size-18 shrink-0 items-center justify-center border-2 border-border bg-muted text-2xl font-extrabold">
+      <div
+        class="flex size-18 shrink-0 items-center justify-center border-2 border-border bg-muted font-heading text-2xl font-extrabold"
+      >
         {{ transcript.student.firstName[0] }}{{ transcript.student.lastName?.[0] ?? '' }}
       </div>
       <div>
@@ -161,11 +163,11 @@ async function exportPdf() {
     </div>
 
     <div v-for="sem in transcript.semesters" :key="sem.number" class="border-b-2 border-border p-6">
-      <div class="font-heading mb-3.5 text-base font-extrabold">Semestre {{ sem.number }}</div>
+      <div class="mb-3.5 font-heading text-base font-extrabold">Semestre {{ sem.number }}</div>
 
       <div v-for="ue in sem.teachingUnits" :key="ue.code" class="mb-3.5 border-2 border-border">
         <div class="flex flex-wrap items-center gap-2.5 border-b-2 border-border bg-muted px-3.5 py-2.5">
-          <div class="font-heading min-w-45 flex-1 text-[13px] font-extrabold">{{ ue.code }} — {{ ue.name }}</div>
+          <div class="min-w-45 flex-1 font-heading text-[13px] font-extrabold">{{ ue.code }} — {{ ue.name }}</div>
           <span class="text-[11px] font-bold text-muted-foreground">{{ ue.credits }} crédits</span>
           <Badge :variant="averageBadgeTone(ue.regularSession.unitAverage)">
             N: {{ formatAverage(ue.regularSession.unitAverage) }} · {{ MENTION_LABEL_FR[ue.regularSession.mention] }} ·
@@ -211,7 +213,7 @@ async function exportPdf() {
     </div>
 
     <div
-      class="font-heading border-b-2 border-border p-5 text-center text-[26px] font-extrabold tracking-wide"
+      class="border-b-2 border-border p-5 text-center font-heading text-[26px] font-extrabold tracking-wide"
       :class="resultBandClass[transcript.annualResult]"
     >
       {{ STATUS_LABEL_FR[transcript.annualResult] }}

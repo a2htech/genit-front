@@ -7,8 +7,6 @@ export interface LaravelPage<T> {
 export async function fetchAllPages<T>(fetchPage: (page: number) => Promise<LaravelPage<T>>): Promise<T[]> {
   const first = await fetchPage(1)
   if (first.meta.last_page <= 1) return first.data
-  const rest = await Promise.all(
-    Array.from({ length: first.meta.last_page - 1 }, (_, i) => fetchPage(i + 2)),
-  )
+  const rest = await Promise.all(Array.from({ length: first.meta.last_page - 1 }, (_, i) => fetchPage(i + 2)))
   return [first.data, ...rest.map((page) => page.data)].flat()
 }

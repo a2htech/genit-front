@@ -14,7 +14,12 @@ const delegatedProps = reactiveOmit(props, 'class')
   <AlertDialogTitle
     data-slot="alert-dialog-title"
     v-bind="delegatedProps"
-    :class="cn('font-heading text-lg font-extrabold sm:group-data-[size=default]/alert-dialog-content:group-has-data-[slot=alert-dialog-media]/alert-dialog-content:col-start-2', props.class)"
+    :class="
+      cn(
+        'font-heading text-lg font-extrabold sm:group-data-[size=default]/alert-dialog-content:group-has-data-[slot=alert-dialog-media]/alert-dialog-content:col-start-2',
+        props.class,
+      )
+    "
   >
     <slot />
   </AlertDialogTitle>

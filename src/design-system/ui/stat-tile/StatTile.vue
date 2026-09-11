@@ -34,7 +34,12 @@ const ICON_CLASSES: Record<NonNullable<typeof props.variant>, string> = {
       <div class="text-xs font-bold tracking-wide text-muted-foreground uppercase">{{ label }}</div>
       <div
         v-if="icon"
-        :class="cn('flex size-8 items-center justify-center border-2 border-border [&_svg:not([class*=size-])]:size-4', ICON_CLASSES[variant])"
+        :class="
+          cn(
+            'flex size-8 items-center justify-center border-2 border-border [&_svg:not([class*=size-])]:size-4',
+            ICON_CLASSES[variant],
+          )
+        "
       >
         <component :is="icon" />
       </div>

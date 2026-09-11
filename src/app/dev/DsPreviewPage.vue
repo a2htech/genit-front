@@ -31,10 +31,10 @@ const page = ref(1)
 
 <template>
   <div class="pb-16">
-    <h1 class="font-heading mb-6 text-2xl font-extrabold">Design system</h1>
+    <h1 class="mb-6 font-heading text-2xl font-extrabold">Design system</h1>
 
     <section class="mb-8">
-      <h2 class="font-heading mb-3 text-base font-extrabold">Button</h2>
+      <h2 class="mb-3 font-heading text-base font-extrabold">Button</h2>
       <div class="mb-2.5 flex flex-wrap items-center gap-3">
         <Button>Primary</Button>
         <Button variant="secondary">Secondary</Button>
@@ -59,7 +59,7 @@ const page = ref(1)
     </section>
 
     <section class="mb-8">
-      <h2 class="font-heading mb-3 text-base font-extrabold">Input / Select / Field</h2>
+      <h2 class="mb-3 font-heading text-base font-extrabold">Input / Select / Field</h2>
       <FieldGroup class="max-w-2xl flex-row flex-wrap gap-4">
         <Field class="max-w-xs"><FieldLabel>Texte</FieldLabel><Input v-model="text" placeholder="Saisir…" /></Field>
         <Field class="max-w-xs">
@@ -82,7 +82,7 @@ const page = ref(1)
     </section>
 
     <section class="mb-8">
-      <h2 class="font-heading mb-3 text-base font-extrabold">Badge</h2>
+      <h2 class="mb-3 font-heading text-base font-extrabold">Badge</h2>
       <div class="flex flex-wrap gap-2">
         <Badge>Default</Badge>
         <Badge variant="success">Success</Badge>
@@ -94,7 +94,7 @@ const page = ref(1)
     </section>
 
     <section class="mb-8">
-      <h2 class="font-heading mb-3 text-base font-extrabold">ToggleGroup</h2>
+      <h2 class="mb-3 font-heading text-base font-extrabold">ToggleGroup</h2>
       <ToggleGroup v-model="toggle" type="single" variant="outline">
         <ToggleGroupItem value="a">Normale</ToggleGroupItem>
         <ToggleGroupItem value="b">Rattrapage</ToggleGroupItem>
@@ -102,12 +102,12 @@ const page = ref(1)
     </section>
 
     <section class="mb-8">
-      <h2 class="font-heading mb-3 text-base font-extrabold">Spinner</h2>
+      <h2 class="mb-3 font-heading text-base font-extrabold">Spinner</h2>
       <Spinner class="size-6" />
     </section>
 
     <section class="mb-8">
-      <h2 class="font-heading mb-3 text-base font-extrabold">Skeleton</h2>
+      <h2 class="mb-3 font-heading text-base font-extrabold">Skeleton</h2>
       <div class="mb-4 flex flex-col gap-2">
         <Skeleton class="h-9 w-16" />
         <Skeleton class="h-4 w-40" />
@@ -127,12 +127,12 @@ const page = ref(1)
     </section>
 
     <section class="mb-8">
-      <h2 class="font-heading mb-3 text-base font-extrabold">FullPageLoader</h2>
+      <h2 class="mb-3 font-heading text-base font-extrabold">FullPageLoader</h2>
       <FullPageLoader class="min-h-48 border-2 border-border" />
     </section>
 
     <section class="mb-8">
-      <h2 class="font-heading mb-3 text-base font-extrabold">Empty</h2>
+      <h2 class="mb-3 font-heading text-base font-extrabold">Empty</h2>
       <Empty>
         <EmptyTitle>Aucun résultat</EmptyTitle>
         <EmptyDescription>Description optionnelle.</EmptyDescription>
@@ -140,7 +140,7 @@ const page = ref(1)
     </section>
 
     <section class="mb-8">
-      <h2 class="font-heading mb-3 text-base font-extrabold">Pagination</h2>
+      <h2 class="mb-3 font-heading text-base font-extrabold">Pagination</h2>
       <Pagination v-model:page="page" :total="30" :items-per-page="10">
         <PaginationContent>
           <PaginationItem v-for="p in 3" :key="p" :value="p" :is-active="p === page">{{ p }}</PaginationItem>
@@ -149,7 +149,7 @@ const page = ref(1)
     </section>
 
     <section class="mb-8">
-      <h2 class="font-heading mb-3 text-base font-extrabold">Table</h2>
+      <h2 class="mb-3 font-heading text-base font-extrabold">Table</h2>
       <Table>
         <TableHeader>
           <TableRow><TableHead>Colonne A</TableHead><TableHead>Colonne B</TableHead></TableRow>
@@ -161,7 +161,7 @@ const page = ref(1)
     </section>
 
     <section class="mb-8">
-      <h2 class="font-heading mb-3 text-base font-extrabold">Dialog</h2>
+      <h2 class="mb-3 font-heading text-base font-extrabold">Dialog</h2>
       <Dialog>
         <DialogTrigger as-child>
           <Button emphasis="compact" size="sm">Ouvrir une modale</Button>

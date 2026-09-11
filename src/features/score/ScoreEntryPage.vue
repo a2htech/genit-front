@@ -20,15 +20,7 @@ import {
 import { Input } from '@/design-system/ui/input'
 import { Skeleton, TableRowsSkeleton } from '@/design-system/ui/skeleton'
 import { Spinner } from '@/design-system/ui/spinner'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableFooter,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/design-system/ui/table'
+import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from '@/design-system/ui/table'
 import { ToggleGroup, ToggleGroupItem } from '@/design-system/ui/toggle-group'
 import { useContextStore, useCurrentAcademicYearQuery } from '@/features/academic-year'
 import { useTeachingUnitsQuery, type Subject } from '@/features/teaching-unit'
@@ -137,10 +129,7 @@ const progressLabel = computed(() => `${filledExistingCount.value + filledDrafts
 function onExistingInput(scoreId: number, raw: string | number) {
   const value = raw === '' ? null : Number(raw)
   errorMessage.value = null
-  updateMutation.mutate(
-    { id: scoreId, score: value },
-    { onError: (e) => (errorMessage.value = toApiError(e).message) },
-  )
+  updateMutation.mutate({ id: scoreId, score: value }, { onError: (e) => (errorMessage.value = toApiError(e).message) })
 }
 
 function onDraftInput(studentId: number, raw: string | number) {
@@ -186,7 +175,7 @@ function finish() {
 
 <template>
   <div>
-    <h1 class="font-heading mb-5 text-2xl font-extrabold">Saisie des notes — {{ context.level }}</h1>
+    <h1 class="mb-5 font-heading text-2xl font-extrabold">Saisie des notes — {{ context.level }}</h1>
 
     <div class="mb-5.5 flex flex-wrap gap-4">
       <div>
@@ -200,7 +189,12 @@ function finish() {
         >
           <ComboboxAnchor as-child>
             <ComboboxTrigger as-child>
-              <Button variant="outline" emphasis="compact" role="combobox" class="min-w-65 justify-between gap-2 bg-card">
+              <Button
+                variant="outline"
+                emphasis="compact"
+                role="combobox"
+                class="min-w-65 justify-between gap-2 bg-card"
+              >
                 {{ currentSubject?.name ?? 'Sélectionner une matière' }}
                 <ChevronDownIcon class="size-4 shrink-0 opacity-50" />
               </Button>
@@ -210,11 +204,7 @@ function finish() {
             <ComboboxInput placeholder="Rechercher une matière…" />
             <ComboboxViewport>
               <ComboboxEmpty>Aucune matière trouvée.</ComboboxEmpty>
-              <ComboboxGroup
-                v-for="unit in unitsWithSubjects"
-                :key="unit.id"
-                :heading="`${unit.code} — ${unit.name}`"
-              >
+              <ComboboxGroup v-for="unit in unitsWithSubjects" :key="unit.id" :heading="`${unit.code} — ${unit.name}`">
                 <ComboboxItem v-for="s in unit.subjects" :key="s.id" :value="s">
                   {{ s.name }}
                   <ComboboxItemIndicator><CheckIcon /></ComboboxItemIndicator>
@@ -240,12 +230,15 @@ function finish() {
         <span>{{ subjectLabel }}</span>
       </div>
       <Skeleton v-if="isPending" class="h-8 w-24" />
-      <div v-else class="font-heading bg-primary px-3.5 py-1.5 text-sm font-extrabold text-primary-foreground">
+      <div v-else class="bg-primary px-3.5 py-1.5 font-heading text-sm font-extrabold text-primary-foreground">
         {{ progressLabel }} saisies
       </div>
     </div>
 
-    <div v-if="errorMessage" class="mb-4 border-2 border-destructive bg-destructive/10 p-3 text-sm font-semibold text-destructive">
+    <div
+      v-if="errorMessage"
+      class="mb-4 border-2 border-destructive bg-destructive/10 p-3 text-sm font-semibold text-destructive"
+    >
       {{ errorMessage }}
     </div>
 
