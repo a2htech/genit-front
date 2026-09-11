@@ -12,7 +12,7 @@ import { ToggleGroup, ToggleGroupItem } from '@/design-system/ui/toggle-group'
 import { useContextStore } from '@/features/academic-year'
 import { ACADEMIC_STATUS_LABELS, useStudentsQuery, type AcademicStatusCode } from '@/features/student'
 import { toApiError } from '@/shared/api/errors'
-import { useAnnualResultsQuery, useCalculateAllAnnualResultsMutation } from './transcript.queries'
+import { useAnnualResultsQuery, useCalculateAnnualResultsForClassMutation } from './transcript.queries'
 
 const router = useRouter()
 const context = useContextStore()
@@ -22,7 +22,7 @@ const { data: annualResults, isPending: resultsPending } = useAnnualResultsQuery
 const { data: students, isPending: studentsPending } = useStudentsQuery()
 const isPending = computed(() => resultsPending.value || studentsPending.value)
 
-const calculateMutation = useCalculateAllAnnualResultsMutation()
+const calculateMutation = useCalculateAnnualResultsForClassMutation()
 
 async function recalculate() {
   errorMessage.value = null

@@ -1,7 +1,15 @@
 import { type Ref, computed } from 'vue'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import { useContextStore, type Level } from '@/features/academic-year'
-import { calculateAllAnnualResults, fetchAnnualResults, fetchTranscript, fetchTranscriptForClass } from './transcript.api'
+import {
+  calculateAllAnnualResults,
+  calculateAnnualResultsForClass,
+  fetchAnnualResults,
+  fetchAnnualResultsSummary,
+  fetchStudentsMissingAnnualResults,
+  fetchTranscript,
+  fetchTranscriptForClass,
+} from './transcript.api'
 
 /** Le niveau courant de l'étudiant est toujours celui du contexte (la recherche ne liste que ce niveau-là). */
 export function useTranscriptQuery(studentId: Ref<number | null>, levelView: Ref<Level | null>) {
@@ -20,6 +28,8 @@ function annualResultsKey(level: string | null) {
   return ['annual-results', level] as const
 }
 
+const annualResultsSummaryKey = ['annual-results', 'summary'] as const
+
 export function useAnnualResultsQuery() {
   const context = useContextStore()
   const level = computed(() => context.level)
@@ -30,11 +40,39 @@ export function useAnnualResultsQuery() {
   })
 }
 
-export function useCalculateAllAnnualResultsMutation() {
+export function useCalculateAnnualResultsForClassMutation() {
   const context = useContextStore()
   const queryClient = useQueryClient()
   return useMutation({
+    mutationFn: () => calculateAnnualResultsForClass(context.level!),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: annualResultsKey(context.level) })
+      queryClient.invalidateQueries({ queryKey: annualResultsSummaryKey })
+    },
+  })
+}
+
+export function useAnnualResultsSummaryQuery() {
+  return useQuery({
+    queryKey: annualResultsSummaryKey,
+    queryFn: fetchAnnualResultsSummary,
+  })
+}
+
+const missingAnnualResultsKey = ['annual-results', 'missing'] as const
+
+export function useMissingAnnualResultsQuery() {
+  return useQuery({
+    queryKey: missingAnnualResultsKey,
+    queryFn: fetchStudentsMissingAnnualResults,
+  })
+}
+
+/** Recalcule tous les niveaux ; invalide toute clé 'annual-results' (missing + listes par niveau). */
+export function useCalculateAllAnnualResultsMutation() {
+  const queryClient = useQueryClient()
+  return useMutation({
     mutationFn: calculateAllAnnualResults,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: annualResultsKey(context.level) }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['annual-results'] }),
   })
 }

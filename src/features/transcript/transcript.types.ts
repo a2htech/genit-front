@@ -1,3 +1,4 @@
+import type { Level } from '@/features/academic-year'
 import type { AcademicStatusCode } from '@/features/student'
 
 /** AcademicStatusEnum::label() côté back (P/C/R/T résolus en toutes lettres). */
@@ -89,3 +90,8 @@ export interface AnnualResult {
   expired: boolean
   failed_subjects: FailedSubject[]
 }
+
+/** Nombre de décisions par statut (P/C/R/T), pour une classe, sur l'année courante. */
+export type DecisionCounts = Record<AcademicStatusCode, number>
+
+export type AnnualResultsSummary = Record<Level, DecisionCounts>
