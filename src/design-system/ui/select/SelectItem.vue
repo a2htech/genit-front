@@ -4,12 +4,7 @@ import type { SelectItemProps } from 'reka-ui'
 import type { HTMLAttributes } from 'vue'
 import { CheckIcon } from '@lucide/vue'
 import { reactiveOmit } from '@vueuse/core'
-import {
-  SelectItem,
-  SelectItemIndicator,
-  SelectItemText,
-  useForwardProps,
-} from 'reka-ui'
+import { SelectItem, SelectItemIndicator, SelectItemText, useForwardProps } from 'reka-ui'
 import { cn } from '@/shared/lib/utils'
 
 const props = defineProps<SelectItemProps & { class?: HTMLAttributes['class'] }>()
@@ -25,7 +20,7 @@ const forwardedProps = useForwardProps(delegatedProps)
     v-bind="forwardedProps"
     :class="
       cn(
-        'focus:bg-accent focus:text-accent-foreground gap-1.5 py-2 pr-8 pl-2.5 text-sm font-medium [&_svg:not([class*=size-])]:size-4 *:[span]:last:flex *:[span]:last:items-center *:[span]:last:gap-2 relative flex w-full cursor-default items-center outline-hidden select-none data-[disabled]:pointer-events-none data-[disabled]:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0',
+        'relative flex w-full cursor-default items-center gap-1.5 py-2 pr-8 pl-2.5 text-sm font-medium outline-hidden select-none focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*=size-])]:size-4 *:[span]:last:flex *:[span]:last:items-center *:[span]:last:gap-2',
         props.class,
       )
     "

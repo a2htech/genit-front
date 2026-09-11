@@ -11,11 +11,13 @@ const props = defineProps<{
 <template>
   <Label
     data-slot="field-label"
-    :class="cn(
-      'has-data-checked:bg-primary/5 has-data-checked:border-primary/30 text-xs font-bold tracking-wide uppercase gap-2 group-data-[disabled=true]/field:opacity-50 has-[>[data-slot=field]]:border-2 *:data-[slot=field]:p-2.5 group/field-label peer/field-label flex w-fit leading-snug',
-      'has-[>[data-slot=field]]:w-full has-[>[data-slot=field]]:flex-col',
-      props.class,
-    )"
+    :class="
+      cn(
+        'group/field-label peer/field-label flex w-fit gap-2 text-xs leading-snug font-bold tracking-wide uppercase group-data-[disabled=true]/field:opacity-50 has-data-checked:border-primary/30 has-data-checked:bg-primary/5 has-[>[data-slot=field]]:border-2 *:data-[slot=field]:p-2.5',
+        'has-[>[data-slot=field]]:w-full has-[>[data-slot=field]]:flex-col',
+        props.class,
+      )
+    "
   >
     <slot />
   </Label>

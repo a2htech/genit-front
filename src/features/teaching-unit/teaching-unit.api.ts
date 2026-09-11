@@ -5,9 +5,7 @@ import type { Subject, SubjectFormValues, SubjectUpdatePayload, TeachingUnit } f
 
 export async function fetchTeachingUnits(level: Level): Promise<TeachingUnit[]> {
   return fetchAllPages((page) =>
-    apiClient
-      .get<LaravelPage<TeachingUnit>>('/teaching-units', { params: { class: level, page } })
-      .then((r) => r.data),
+    apiClient.get<LaravelPage<TeachingUnit>>('/teaching-units', { params: { class: level, page } }).then((r) => r.data),
   )
 }
 

@@ -32,7 +32,6 @@ function bootstrap() {
   setAuthTokenProvider(() => getToken.value())
   setUnauthorizedHandler(() => router.push({ name: 'unauthorized' }))
 
-
   watch(isSignedIn, (signedIn, wasSignedIn) => {
     if (wasSignedIn && !signedIn) {
       queryClient.removeQueries({ queryKey: currentAcademicYearKey })

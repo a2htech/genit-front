@@ -41,10 +41,13 @@ function selectLevel(n: Level) {
       <header class="flex h-16 items-center gap-4 border-b-2 border-border bg-card px-6">
         <RouterLink
           :to="{ name: 'dashboard' }"
-          class="flex size-9 shrink-0 items-center justify-center border-2 border-border bg-accent shadow-brutal-sm no-underline transition-transform duration-100 hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-none"
+          class="flex size-9 shrink-0 items-center justify-center border-2 border-border bg-accent no-underline shadow-brutal-sm transition-transform duration-100 hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-none"
           style="clip-path: polygon(0 0, 100% 0, 100% 62%, 62% 100%, 0 100%)"
         >
-          <GraduationCapIcon class="size-4.5 -translate-x-0.5 -translate-y-0.5 text-accent-foreground" aria-hidden="true" />
+          <GraduationCapIcon
+            class="size-4.5 -translate-x-0.5 -translate-y-0.5 text-accent-foreground"
+            aria-hidden="true"
+          />
         </RouterLink>
         <span class="h-6 w-1 shrink-0 bg-foreground" />
         <nav class="flex flex-1 gap-1 overflow-x-auto">
@@ -53,9 +56,11 @@ function selectLevel(n: Level) {
             :key="item.name"
             :to="{ name: item.name }"
             class="border-b-4 px-3.5 py-2.5 text-sm font-bold whitespace-nowrap no-underline transition-colors duration-100"
-            :class="route.name === item.name
-              ? 'border-accent text-foreground'
-              : 'border-transparent text-foreground/70 hover:border-accent/40 hover:text-foreground'"
+            :class="
+              route.name === item.name
+                ? 'border-accent text-foreground'
+                : 'border-transparent text-foreground/70 hover:border-accent/40 hover:text-foreground'
+            "
           >
             {{ item.label }}
           </RouterLink>
@@ -63,21 +68,17 @@ function selectLevel(n: Level) {
         <span class="h-8 w-px shrink-0 bg-border" />
 
         <div class="flex shrink-0 flex-wrap items-center gap-2">
-          <div class="border-2 border-border bg-card px-2.5 py-1.5 text-xs font-bold">
-            📅 {{ currentYear?.year }}
-          </div>
+          <div class="border-2 border-border bg-card px-2.5 py-1.5 text-xs font-bold">📅 {{ currentYear?.year }}</div>
 
           <DropdownMenu>
-            <DropdownMenuTrigger class="flex items-center gap-1 border-2 border-border bg-card px-2.5 py-1.5 text-xs font-bold">
+            <DropdownMenuTrigger
+              class="flex items-center gap-1 border-2 border-border bg-card px-2.5 py-1.5 text-xs font-bold"
+            >
               <GraduationCapIcon class="size-3.5" /> {{ context.level }} <ChevronDownIcon class="size-3" />
             </DropdownMenuTrigger>
             <DropdownMenuContent>
               <DropdownMenuGroup>
-                <DropdownMenuItem
-                  v-for="n in LEVELS"
-                  :key="n.value"
-                  @select="selectLevel(n.value)"
-                >
+                <DropdownMenuItem v-for="n in LEVELS" :key="n.value" @select="selectLevel(n.value)">
                   {{ n.value }} — {{ n.label }}
                 </DropdownMenuItem>
               </DropdownMenuGroup>

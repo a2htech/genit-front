@@ -150,7 +150,10 @@ function openTranscript(s: Student) {
 
   <Input v-model="search" placeholder="Rechercher un étudiant (nom, prénom)…" class="mb-4.5" />
 
-  <div v-if="errorMessage" class="mb-4 border-2 border-destructive bg-destructive/10 p-3 text-sm font-semibold text-destructive">
+  <div
+    v-if="errorMessage"
+    class="mb-4 border-2 border-destructive bg-destructive/10 p-3 text-sm font-semibold text-destructive"
+  >
     {{ errorMessage }}
   </div>
 
@@ -191,9 +194,7 @@ function openTranscript(s: Student) {
           <TableCell class="text-right" @click.stop>
             <div class="flex justify-end gap-2">
               <Button emphasis="compact" size="sm" @click="openEdit(s)">Éditer</Button>
-              <Button variant="destructive" emphasis="compact" size="sm" @click="askDelete(s)">
-                Suppr.
-              </Button>
+              <Button variant="destructive" emphasis="compact" size="sm" @click="askDelete(s)"> Suppr. </Button>
             </div>
           </TableCell>
         </TableRow>
@@ -224,8 +225,8 @@ function openTranscript(s: Student) {
       <AlertDialogHeader>
         <AlertDialogTitle>Supprimer cet étudiant ?</AlertDialogTitle>
         <AlertDialogDescription>
-          {{ deleteTarget?.first_name }} {{ deleteTarget?.last_name }} sera définitivement
-          supprimé(e). Cette action est irréversible.
+          {{ deleteTarget?.first_name }} {{ deleteTarget?.last_name }} sera définitivement supprimé(e). Cette action est
+          irréversible.
         </AlertDialogDescription>
       </AlertDialogHeader>
       <AlertDialogFooter>

@@ -58,7 +58,7 @@ function formatNumber(value: number): string {
 <template>
   <div>
     <div class="mb-7 flex flex-wrap items-center justify-center gap-2.5">
-      <h1 class="font-heading text-center text-2xl font-extrabold">Tableau de bord</h1>
+      <h1 class="text-center font-heading text-2xl font-extrabold">Tableau de bord</h1>
       <Badge v-if="data" variant="outline">Année {{ data.academicYear.year }}</Badge>
     </div>
 

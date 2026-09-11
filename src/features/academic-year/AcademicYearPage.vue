@@ -104,7 +104,7 @@ async function confirmSwitch() {
 
 <template>
   <div>
-    <h1 class="font-heading mb-5 text-2xl font-extrabold">Année universitaire</h1>
+    <h1 class="mb-5 font-heading text-2xl font-extrabold">Année universitaire</h1>
 
     <Card class="mb-6 flex-row flex-wrap items-center justify-between gap-4 px-5">
       <div>
@@ -126,11 +126,14 @@ async function confirmSwitch() {
       </Button>
     </Card>
 
-    <div v-if="calculateErrorMessage" class="mb-6 border-2 border-destructive bg-destructive/10 p-3 text-sm font-semibold text-destructive">
+    <div
+      v-if="calculateErrorMessage"
+      class="mb-6 border-2 border-destructive bg-destructive/10 p-3 text-sm font-semibold text-destructive"
+    >
       {{ calculateErrorMessage }}
     </div>
 
-    <h2 class="font-heading mb-3 text-lg font-extrabold">Résumé des décisions</h2>
+    <h2 class="mb-3 font-heading text-lg font-extrabold">Résumé des décisions</h2>
     <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
       <template v-if="summaryPending">
         <Skeleton v-for="n in 5" :key="n" class="h-44 w-full" />
@@ -189,8 +192,8 @@ async function confirmSwitch() {
         </DialogHeader>
 
         <div class="border-2 border-border bg-muted p-3.5 text-sm leading-relaxed">
-          Cette action va créer l'année <strong>{{ nextYear }}</strong> et la définir comme année
-          courante pour tout le monde. <strong>Cette action est irréversible.</strong>
+          Cette action va créer l'année <strong>{{ nextYear }}</strong> et la définir comme année courante pour tout le
+          monde. <strong>Cette action est irréversible.</strong>
         </div>
 
         <Field>
@@ -199,9 +202,7 @@ async function confirmSwitch() {
         </Field>
 
         <DialogFooter>
-          <Button variant="secondary" emphasis="compact" @click="switchModalOpen = false">
-            Annuler
-          </Button>
+          <Button variant="secondary" emphasis="compact" @click="switchModalOpen = false"> Annuler </Button>
           <Button
             variant="destructive"
             :disabled="!switchConfirmValid || createMutation.isPending.value"
