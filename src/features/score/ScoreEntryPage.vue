@@ -104,6 +104,31 @@ const rows = computed(() => {
   return [...base, ...extra]
 })
 
+/** Étudiants dont le niveau réel diffère du niveau consulté : ils cumulent encore cette matière d'un niveau inférieur. */
+const nativeRows = computed(() => rows.value.filter((r) => r.student.class === context.level))
+const cumulRows = computed(() => rows.value.filter((r) => r.student.class !== context.level))
+
+type ScoreRow = (typeof rows)['value'][number]
+type DisplayEntry = { type: 'separator'; key: string } | { type: 'row'; key: number; row: ScoreRow; gradeIndex: number }
+
+/** Cumulants regroupés après les étudiants du niveau, séparés par un en-tête de section (choix UX validé). */
+const displayRows = computed<DisplayEntry[]>(() => {
+  const native = nativeRows.value.map((row, i): DisplayEntry => ({
+    type: 'row',
+    key: row.studentId,
+    row,
+    gradeIndex: i,
+  }))
+  const cumul = cumulRows.value.map((row, i): DisplayEntry => ({
+    type: 'row',
+    key: row.studentId,
+    row,
+    gradeIndex: native.length + i,
+  }))
+  if (cumul.length === 0) return native
+  return [...native, { type: 'separator', key: 'cumul-separator' }, ...cumul]
+})
+
 const studentSearch = ref('')
 const debouncedStudentSearch = refDebounced(studentSearch, 300)
 const isRattrapage = computed(() => session.value === 'rattrapage')
@@ -272,54 +297,64 @@ function finish() {
           :cell-class="['h-4 w-40', 'h-9 w-full']"
         />
         <template v-else>
-          <TableRow v-for="(row, index) in rows" :key="row.studentId">
-            <TableCell>
-              {{ row.student.first_name }} {{ row.student.last_name }}
-              <Badge v-if="row.isAdded" variant="accent" class="ml-2">Ajouté</Badge>
-            </TableCell>
-            <TableCell>
-              <Input
-                v-if="row.existing"
-                :id="`grade-input-${index}`"
-                type="number"
-                :min="0"
-                :max="20"
-                :step="0.5"
-                placeholder="—"
-                class="text-center font-bold"
-                :class="isFailingScore(row.existing.score) ? 'text-destructive' : ''"
-                :model-value="row.existing.score ?? ''"
-                @update:model-value="(v) => onExistingInput(row.existing!.id, v ?? '')"
-                @keydown="(e: KeyboardEvent) => onKeydown(e, index)"
-              />
-              <div v-else class="flex items-center gap-2">
+          <template v-for="entry in displayRows" :key="entry.key">
+            <TableRow v-if="entry.type === 'separator'" class="bg-warning/15 hover:bg-warning/15">
+              <TableCell colspan="2" class="text-xs font-bold tracking-wide text-foreground/70 uppercase">
+                Étudiants en cumul
+              </TableCell>
+            </TableRow>
+            <TableRow v-else>
+              <TableCell>
+                {{ entry.row.student.first_name }} {{ entry.row.student.last_name }}
+                <Badge v-if="entry.row.student.class !== context.level" variant="warning" class="ml-2">
+                  {{ entry.row.student.class }}
+                </Badge>
+                <Badge v-if="entry.row.isAdded" variant="accent" class="ml-2">Ajouté</Badge>
+              </TableCell>
+              <TableCell>
                 <Input
-                  :id="`grade-input-${index}`"
+                  v-if="entry.row.existing"
+                  :id="`grade-input-${entry.gradeIndex}`"
                   type="number"
                   :min="0"
                   :max="20"
                   :step="0.5"
                   placeholder="—"
                   class="text-center font-bold"
-                  :class="isFailingScore(drafts[row.studentId] ?? null) ? 'text-destructive' : ''"
-                  :model-value="drafts[row.studentId] ?? ''"
-                  @update:model-value="(v) => onDraftInput(row.studentId, v ?? '')"
-                  @keydown="(e: KeyboardEvent) => onKeydown(e, index)"
+                  :class="isFailingScore(entry.row.existing.score) ? 'text-destructive' : ''"
+                  :model-value="entry.row.existing.score ?? ''"
+                  @update:model-value="(v) => onExistingInput(entry.row.existing!.id, v ?? '')"
+                  @keydown="(e: KeyboardEvent) => onKeydown(e, entry.gradeIndex)"
                 />
-                <Button
-                  v-if="row.isAdded"
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  emphasis="compact"
-                  aria-label="Retirer cet étudiant"
-                  @click="removeAddedStudent(row.studentId)"
-                >
-                  <XIcon />
-                </Button>
-              </div>
-            </TableCell>
-          </TableRow>
+                <div v-else class="flex items-center gap-2">
+                  <Input
+                    :id="`grade-input-${entry.gradeIndex}`"
+                    type="number"
+                    :min="0"
+                    :max="20"
+                    :step="0.5"
+                    placeholder="—"
+                    class="text-center font-bold"
+                    :class="isFailingScore(drafts[entry.row.studentId] ?? null) ? 'text-destructive' : ''"
+                    :model-value="drafts[entry.row.studentId] ?? ''"
+                    @update:model-value="(v) => onDraftInput(entry.row.studentId, v ?? '')"
+                    @keydown="(e: KeyboardEvent) => onKeydown(e, entry.gradeIndex)"
+                  />
+                  <Button
+                    v-if="entry.row.isAdded"
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    emphasis="compact"
+                    aria-label="Retirer cet étudiant"
+                    @click="removeAddedStudent(entry.row.studentId)"
+                  >
+                    <XIcon />
+                  </Button>
+                </div>
+              </TableCell>
+            </TableRow>
+          </template>
         </template>
       </TableBody>
       <TableFooter v-if="isRattrapage">
