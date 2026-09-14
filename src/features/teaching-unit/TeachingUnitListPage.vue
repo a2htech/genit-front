@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, reactive, ref } from 'vue'
+import { computed, reactive, ref, watch } from 'vue'
 import { CheckIcon, ChevronDownIcon, ChevronRightIcon } from '@lucide/vue'
 import {
   AlertDialog,
@@ -43,6 +43,12 @@ const context = useContextStore()
 const semesterOptions = computed(() => semestersForLevel(context.level!))
 const semester = ref<number>(semesterOptions.value[0])
 const errorMessage = ref<string | null>(null)
+
+// Les semestres valides changent avec le niveau ; sans ça, `semester` garde une valeur qui n'existe plus.
+watch(
+  () => context.level,
+  () => (semester.value = semesterOptions.value[0]),
+)
 
 const { data: teachingUnits, isPending } = useTeachingUnitsQuery()
 
