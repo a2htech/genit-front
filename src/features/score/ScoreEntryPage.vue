@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, reactive, ref, watch, watchEffect } from 'vue'
+import { computed, onUnmounted, reactive, ref, watch, watchEffect } from 'vue'
 import { useRouter } from 'vue-router'
 import { refDebounced } from '@vueuse/core'
 import { CheckIcon, ChevronDownIcon, PlusIcon, XIcon } from '@lucide/vue'
@@ -26,6 +26,7 @@ import { useContextStore, useCurrentAcademicYearQuery } from '@/features/academi
 import { useTeachingUnitsQuery, type Subject } from '@/features/teaching-unit'
 import { type Student } from '@/features/student'
 import { toApiError } from '@/shared/api/errors'
+import { registerUnsavedGuard } from '@/shared/lib/unsaved-changes'
 import { isFailingScore } from '@/shared/utils/format'
 import {
   useEligibleStudentsQuery,
@@ -47,6 +48,11 @@ const { data: teachingUnits, isPending: subjectsPending } = useTeachingUnitsQuer
 const unitsWithSubjects = computed(() => (teachingUnits.value ?? []).filter((u) => u.subjects.length > 0))
 const subjects = computed(() => unitsWithSubjects.value.flatMap((u) => u.subjects))
 const subjectId = ref<number | null>(null)
+// Les matières valides changent avec le niveau ; sans ça, subjectId garde une valeur qui n'existe plus.
+watch(
+  () => context.level,
+  () => (subjectId.value = null),
+)
 watchEffect(() => {
   if (!subjectId.value && subjects.value.length > 0) {
     subjectId.value = subjects.value[0]!.id
@@ -145,6 +151,15 @@ function onKeydown(e: KeyboardEvent, index: number) {
 }
 
 const hasDraftsToSave = computed(() => filledDraftsCount.value > 0)
+
+const unregisterGuard = registerUnsavedGuard(
+  () => hasDraftsToSave.value,
+  () => {
+    for (const key of Object.keys(drafts)) delete drafts[Number(key)]
+    addedStudents.value = []
+  },
+)
+onUnmounted(unregisterGuard)
 
 async function save() {
   if (!subjectId.value || classYear.value === null || !hasDraftsToSave.value) return

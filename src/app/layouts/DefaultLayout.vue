@@ -1,8 +1,18 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { UserButton } from '@clerk/vue'
 import { ChevronDownIcon, GraduationCapIcon } from '@lucide/vue'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/design-system/ui/alert-dialog'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -13,6 +23,7 @@ import {
 import { FullPageLoader } from '@/design-system/ui/full-page-loader'
 import { LEVELS, useContextStore, useCurrentAcademicYearQuery, type Level } from '@/features/academic-year'
 import { useAuthStore } from '@/features/auth'
+import { discardUnsavedChanges, hasUnsavedChanges } from '@/shared/lib/unsaved-changes'
 
 const route = useRoute()
 const context = useContextStore()
@@ -33,8 +44,31 @@ const navItems: { name: string; label: string }[] = [
   { name: 'academic-year', label: 'Année' },
 ]
 
+const pendingLevel = ref<Level | null>(null)
+// AlertDialogAction ferme le dialog (nullifie pendingLevel via @update:open) dans le même
+// clic avant que ce handler ne tourne, donc le niveau visé est capturé à part.
+let pendingLevelValue: Level | null = null
+
 function selectLevel(n: Level) {
+  if (hasUnsavedChanges()) {
+    pendingLevel.value = n
+    pendingLevelValue = n
+    return
+  }
   context.setLevel(n)
+}
+
+function confirmLevelChange() {
+  if (pendingLevelValue === null) return
+  discardUnsavedChanges()
+  context.setLevel(pendingLevelValue)
+  pendingLevelValue = null
+  pendingLevel.value = null
+}
+
+function cancelLevelChange() {
+  pendingLevelValue = null
+  pendingLevel.value = null
 }
 </script>
 
@@ -99,5 +133,20 @@ function selectLevel(n: Level) {
     <main :class="showChrome ? 'mx-auto max-w-350 px-6 pt-7 pb-20' : ''">
       <RouterView />
     </main>
+
+    <AlertDialog :open="!!pendingLevel" @update:open="(v) => !v && (pendingLevel = null)">
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Modifications non enregistrées</AlertDialogTitle>
+          <AlertDialogDescription>
+            Changer de niveau abandonnera les modifications en cours sur cette page.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel @click="cancelLevelChange">Annuler</AlertDialogCancel>
+          <AlertDialogAction variant="destructive" @click="confirmLevelChange">Changer quand même</AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   </div>
 </template>
