@@ -21,6 +21,10 @@ const { data: currentYear } = useCurrentAcademicYearQuery()
 
 const showChrome = computed(() => route.meta.requiresContext !== false)
 
+const academicYearLabel = computed(() =>
+  currentYear.value ? `${currentYear.value.year - 1}-${currentYear.value.year}` : null,
+)
+
 const navItems: { name: string; label: string }[] = [
   { name: 'students', label: 'Étudiants' },
   { name: 'teaching-units', label: 'UE' },
@@ -68,13 +72,15 @@ function selectLevel(n: Level) {
         <span class="h-8 w-px shrink-0 bg-border" />
 
         <div class="flex shrink-0 flex-wrap items-center gap-2">
-          <div class="border-2 border-border bg-card px-2.5 py-1.5 text-xs font-bold">📅 {{ currentYear?.year }}</div>
+          <span v-if="academicYearLabel" class="text-xs font-semibold whitespace-nowrap text-muted-foreground">
+            <span class="text-[10px] font-bold tracking-wide uppercase">AU</span> {{ academicYearLabel }}
+          </span>
 
           <DropdownMenu>
             <DropdownMenuTrigger
-              class="flex items-center gap-1 border-2 border-border bg-card px-2.5 py-1.5 text-xs font-bold"
+              class="flex items-center gap-1.5 border-2 border-border bg-primary px-3 py-1.5 text-xs font-bold whitespace-nowrap text-primary-foreground shadow-brutal-sm transition-transform duration-100 hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-none"
             >
-              <GraduationCapIcon class="size-3.5" /> {{ context.level }} <ChevronDownIcon class="size-3" />
+              <GraduationCapIcon class="size-3.5" /> Niveau {{ context.level }} <ChevronDownIcon class="size-3" />
             </DropdownMenuTrigger>
             <DropdownMenuContent>
               <DropdownMenuGroup>
