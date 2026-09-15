@@ -85,12 +85,14 @@ const sessionStudents = computed(() => {
 /** Étudiants ajoutés manuellement (rattrapage volontaire), en plus de la liste retournée par le back. */
 const addedStudents = ref<Student[]>([])
 
-/** Brouillon local des lignes non encore envoyées (aucun score existant côté back pour ce couple étudiant/matière). */
+/** Brouillon local des notes saisies ou corrigées, tant qu'elles n'ont pas été envoyées. */
 const drafts = reactive<Record<number, number | null>>({})
-watch([subjectId, session], () => {
+
+function resetDrafts() {
   for (const key of Object.keys(drafts)) delete drafts[Number(key)]
   addedStudents.value = []
-})
+}
+watch([subjectId, session], resetDrafts)
 
 const rows = computed(() => {
   const base = sessionStudents.value.map((s) => ({
@@ -153,17 +155,32 @@ function removeAddedStudent(studentId: number) {
   delete drafts[studentId]
 }
 
-const filledDraftsCount = computed(() => Object.values(drafts).filter((v) => typeof v === 'number').length)
-const filledExistingCount = computed(() => rows.value.filter((r) => r.existing !== null).length)
-const progressLabel = computed(() => `${filledExistingCount.value + filledDraftsCount.value}/${rows.value.length}`)
-
-function onExistingInput(scoreId: number, raw: string | number) {
-  const value = raw === '' ? null : Number(raw)
-  errorMessage.value = null
-  updateMutation.mutate({ id: scoreId, score: value }, { onError: (e) => (errorMessage.value = toApiError(e).message) })
+function isScoreInRange(value: number): boolean {
+  return Number.isFinite(value) && value >= 0 && value <= 20
 }
 
-function onDraftInput(studentId: number, raw: string | number) {
+/** Le brouillon dès que la ligne a été touchée, sinon la note déjà enregistrée. */
+function currentValue(row: ScoreRow): number | null {
+  return row.studentId in drafts ? (drafts[row.studentId] ?? null) : (row.existing?.score ?? null)
+}
+
+function isOutOfRange(row: ScoreRow): boolean {
+  const value = currentValue(row)
+  return value !== null && !isScoreInRange(value)
+}
+
+const filledCount = computed(() => rows.value.filter((r) => currentValue(r) !== null).length)
+const progressLabel = computed(() => `${filledCount.value}/${rows.value.length}`)
+
+/** Lignes touchées dont la valeur diffère de l'enregistré : création, correction ou effacement. */
+const pendingChanges = computed(() =>
+  rows.value
+    .filter((row) => row.studentId in drafts)
+    .map((row) => ({ row, value: drafts[row.studentId] ?? null }))
+    .filter(({ row, value }) => (row.existing ? value !== row.existing.score : value !== null)),
+)
+
+function onScoreInput(studentId: number, raw: string | number) {
   drafts[studentId] = raw === '' ? null : Number(raw)
 }
 
@@ -175,37 +192,40 @@ function onKeydown(e: KeyboardEvent, index: number) {
   }
 }
 
-const hasDraftsToSave = computed(() => filledDraftsCount.value > 0)
+const hasPendingChanges = computed(() => pendingChanges.value.length > 0)
+const hasOutOfRange = computed(() => pendingChanges.value.some(({ row }) => isOutOfRange(row)))
+const isSaving = computed(() => storeMutation.isPending.value || updateMutation.isPending.value)
 
-const unregisterGuard = registerUnsavedGuard(
-  () => hasDraftsToSave.value,
-  () => {
-    for (const key of Object.keys(drafts)) delete drafts[Number(key)]
-    addedStudents.value = []
-  },
-)
+const unregisterGuard = registerUnsavedGuard(() => hasPendingChanges.value, resetDrafts)
 onUnmounted(unregisterGuard)
 
 async function save() {
-  if (!subjectId.value || classYear.value === null || !hasDraftsToSave.value) return
-  const scores = Object.entries(drafts)
-    .filter(([, v]) => typeof v === 'number')
-    .map(([studentId, value]) => ({ student_id: Number(studentId), score: value as number }))
+  if (!subjectId.value || classYear.value === null || !hasPendingChanges.value || hasOutOfRange.value) return
+  const changes = pendingChanges.value
+  const created = changes.filter(({ row }) => !row.existing)
+  const updated = changes.filter(({ row }) => row.existing)
   errorMessage.value = null
   try {
-    await storeMutation.mutateAsync({
-      subjectId: subjectId.value,
-      session: session.value,
-      classYear: classYear.value,
-      scores,
-    })
+    await Promise.all([
+      ...(created.length > 0
+        ? [
+            storeMutation.mutateAsync({
+              subjectId: subjectId.value,
+              session: session.value,
+              classYear: classYear.value,
+              scores: created.map(({ row, value }) => ({ student_id: row.studentId, score: value as number })),
+            }),
+          ]
+        : []),
+      ...updated.map(({ row, value }) => updateMutation.mutateAsync({ id: row.existing!.id, score: value })),
+    ])
   } catch (e) {
     errorMessage.value = toApiError(e).message
     return
   }
-  const savedIds = new Set(scores.map((s) => s.student_id))
-  for (const key of Object.keys(drafts)) delete drafts[Number(key)]
-  addedStudents.value = addedStudents.value.filter((s) => !savedIds.has(s.id))
+  for (const { row } of changes) delete drafts[row.studentId]
+  const createdIds = new Set(created.map(({ row }) => row.studentId))
+  addedStudents.value = addedStudents.value.filter((s) => !createdIds.has(s.id))
 }
 
 function finish() {
@@ -282,6 +302,10 @@ function finish() {
       {{ errorMessage }}
     </div>
 
+    <div v-if="hasOutOfRange" class="mb-4 border-2 border-warning bg-warning/15 p-3 text-sm font-semibold">
+      Une note doit être comprise entre 0 et 20. Corrigez les valeurs signalées avant d'enregistrer.
+    </div>
+
     <Table class="mb-24">
       <TableHeader>
         <TableRow>
@@ -312,21 +336,7 @@ function finish() {
                 <Badge v-if="entry.row.isAdded" variant="accent" class="ml-2">Ajouté</Badge>
               </TableCell>
               <TableCell>
-                <Input
-                  v-if="entry.row.existing"
-                  :id="`grade-input-${entry.gradeIndex}`"
-                  type="number"
-                  :min="0"
-                  :max="20"
-                  :step="0.5"
-                  placeholder="—"
-                  class="text-center font-bold"
-                  :class="isFailingScore(entry.row.existing.score) ? 'text-destructive' : ''"
-                  :model-value="entry.row.existing.score ?? ''"
-                  @update:model-value="(v) => onExistingInput(entry.row.existing!.id, v ?? '')"
-                  @keydown="(e: KeyboardEvent) => onKeydown(e, entry.gradeIndex)"
-                />
-                <div v-else class="flex items-center gap-2">
+                <div class="flex items-center gap-2">
                   <Input
                     :id="`grade-input-${entry.gradeIndex}`"
                     type="number"
@@ -335,9 +345,10 @@ function finish() {
                     :step="0.5"
                     placeholder="—"
                     class="text-center font-bold"
-                    :class="isFailingScore(drafts[entry.row.studentId] ?? null) ? 'text-destructive' : ''"
-                    :model-value="drafts[entry.row.studentId] ?? ''"
-                    @update:model-value="(v) => onDraftInput(entry.row.studentId, v ?? '')"
+                    :class="isFailingScore(currentValue(entry.row)) ? 'text-destructive' : ''"
+                    :aria-invalid="isOutOfRange(entry.row)"
+                    :model-value="currentValue(entry.row) ?? ''"
+                    @update:model-value="(v) => onScoreInput(entry.row.studentId, v ?? '')"
                     @keydown="(e: KeyboardEvent) => onKeydown(e, entry.gradeIndex)"
                   />
                   <Button
@@ -395,10 +406,10 @@ function finish() {
       <Button
         variant="success"
         class="border-background shadow-[4px_4px_0_0_var(--background)] hover:shadow-[2px_2px_0_0_var(--background)]"
-        :disabled="!hasDraftsToSave || storeMutation.isPending.value"
+        :disabled="!hasPendingChanges || hasOutOfRange || isSaving"
         @click="save"
       >
-        Enregistrer les nouvelles notes
+        Enregistrer les notes
       </Button>
       <Button
         variant="secondary"
