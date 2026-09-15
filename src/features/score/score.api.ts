@@ -18,7 +18,7 @@ export interface StoreScoresPayload {
   subjectId: number
   session: ExamSession
   classYear: number
-  scores: { student_id: number; score: number }[]
+  scores: { student_id: number; score: number | null }[]
 }
 
 export async function storeScoresForSubject(payload: StoreScoresPayload): Promise<Score[]> {

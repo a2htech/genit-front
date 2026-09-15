@@ -28,12 +28,7 @@ import { type Student } from '@/features/student'
 import { toApiError } from '@/shared/api/errors'
 import { registerUnsavedGuard } from '@/shared/lib/unsaved-changes'
 import { isFailingScore } from '@/shared/utils/format'
-import {
-  useEligibleStudentsQuery,
-  useRetakeEligibleStudentsQuery,
-  useStoreScoresMutation,
-  useUpdateScoreMutation,
-} from './score.queries'
+import { useEligibleStudentsQuery, useRetakeEligibleStudentsQuery, useSaveScoresMutation } from './score.queries'
 import type { ExamSession } from './score.types'
 
 const errorMessage = ref<string | null>(null)
@@ -66,8 +61,7 @@ function onSessionChange(value: unknown) {
 }
 
 const { data: eligibleStudents, isPending: eligibleStudentsPending } = useEligibleStudentsQuery(subjectId)
-const storeMutation = useStoreScoresMutation(subjectId)
-const updateMutation = useUpdateScoreMutation(subjectId)
+const saveMutation = useSaveScoresMutation(subjectId)
 
 const isPending = computed(() => subjectsPending.value)
 
@@ -194,38 +188,35 @@ function onKeydown(e: KeyboardEvent, index: number) {
 
 const hasPendingChanges = computed(() => pendingChanges.value.length > 0)
 const hasOutOfRange = computed(() => pendingChanges.value.some(({ row }) => isOutOfRange(row)))
-const isSaving = computed(() => storeMutation.isPending.value || updateMutation.isPending.value)
+const isSaving = saveMutation.isPending
 
 const unregisterGuard = registerUnsavedGuard(() => hasPendingChanges.value, resetDrafts)
 onUnmounted(unregisterGuard)
 
 async function save() {
   if (!subjectId.value || classYear.value === null || !hasPendingChanges.value || hasOutOfRange.value) return
-  const changes = pendingChanges.value
-  const created = changes.filter(({ row }) => !row.existing)
-  const updated = changes.filter(({ row }) => row.existing)
+  // Toute ligne sans note enregistrée part dans le lot, vide comprise : le back crée alors une note nulle.
+  const created = rows.value.filter((row) => !row.existing)
+  const updated = pendingChanges.value.filter(({ row }) => row.existing)
   errorMessage.value = null
   try {
-    await Promise.all([
-      ...(created.length > 0
-        ? [
-            storeMutation.mutateAsync({
+    await saveMutation.mutateAsync({
+      create:
+        created.length > 0
+          ? {
               subjectId: subjectId.value,
               session: session.value,
               classYear: classYear.value,
-              scores: created.map(({ row, value }) => ({ student_id: row.studentId, score: value as number })),
-            }),
-          ]
-        : []),
-      ...updated.map(({ row, value }) => updateMutation.mutateAsync({ id: row.existing!.id, score: value })),
-    ])
+              scores: created.map((row) => ({ student_id: row.studentId, score: currentValue(row) })),
+            }
+          : null,
+      update: updated.map(({ row, value }) => ({ id: row.existing!.id, score: value })),
+    })
   } catch (e) {
     errorMessage.value = toApiError(e).message
     return
   }
-  for (const { row } of changes) delete drafts[row.studentId]
-  const createdIds = new Set(created.map(({ row }) => row.studentId))
-  addedStudents.value = addedStudents.value.filter((s) => !createdIds.has(s.id))
+  resetDrafts()
 }
 
 function finish() {
