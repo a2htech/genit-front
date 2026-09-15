@@ -1,7 +1,17 @@
 <script setup lang="ts">
 import { computed, onUnmounted, reactive, ref, watch, watchEffect } from 'vue'
 import { useRouter } from 'vue-router'
-import { XIcon } from '@lucide/vue'
+import { Trash2Icon, XIcon } from '@lucide/vue'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/design-system/ui/alert-dialog'
 import { Badge } from '@/design-system/ui/badge'
 import { Button } from '@/design-system/ui/button'
 import { Input } from '@/design-system/ui/input'
@@ -15,7 +25,7 @@ import { registerUnsavedGuard } from '@/shared/lib/unsaved-changes'
 import { isFailingScore } from '@/shared/utils/format'
 import RetakeStudentCombobox from './RetakeStudentCombobox.vue'
 import ScoreEntryFilters from './ScoreEntryFilters.vue'
-import { useEligibleStudentsQuery, useSaveScoresMutation } from './score.queries'
+import { useDeleteScoreMutation, useEligibleStudentsQuery, useSaveScoresMutation } from './score.queries'
 import type { ExamSession } from './score.types'
 
 const errorMessage = ref<string | null>(null)
@@ -45,6 +55,7 @@ const session = ref<ExamSession>('normale')
 
 const { data: eligibleStudents, isPending: eligibleStudentsPending } = useEligibleStudentsQuery(subjectId)
 const saveMutation = useSaveScoresMutation(subjectId)
+const deleteMutation = useDeleteScoreMutation(subjectId)
 
 const isPending = computed(() => subjectsPending.value)
 
@@ -190,6 +201,29 @@ async function save() {
   resetDrafts()
 }
 
+const deleteTarget = ref<ScoreRow | null>(null)
+// AlertDialogAction ferme le dialog (deleteTarget → null) avant ce handler : la ligne est capturée à part.
+let deleteTargetRow: ScoreRow | null = null
+
+function askDelete(row: ScoreRow) {
+  deleteTarget.value = row
+  deleteTargetRow = row
+}
+
+async function confirmDelete() {
+  const row = deleteTargetRow
+  deleteTargetRow = null
+  if (!row?.existing) return
+  errorMessage.value = null
+  try {
+    await deleteMutation.mutateAsync(row.existing.id)
+    delete drafts[row.studentId]
+  } catch (e) {
+    errorMessage.value = toApiError(e).message
+  }
+  deleteTarget.value = null
+}
+
 function finish() {
   router.push({ name: 'dashboard' })
 }
@@ -233,7 +267,7 @@ function finish() {
       <TableHeader>
         <TableRow>
           <TableHead>Étudiant</TableHead>
-          <TableHead class="w-40">Note / 20</TableHead>
+          <TableHead class="w-48">Note / 20</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -266,25 +300,42 @@ function finish() {
                     :min="0"
                     :max="20"
                     :step="0.5"
-                    placeholder="—"
+                    :placeholder="entry.row.existing ? 'ABS' : '—'"
                     class="text-center font-bold"
-                    :class="isFailingScore(currentValue(entry.row)) ? 'text-destructive' : ''"
+                    :class="[
+                      isFailingScore(currentValue(entry.row)) ? 'text-destructive' : '',
+                      entry.row.existing ? 'placeholder:text-destructive' : '',
+                    ]"
                     :aria-invalid="isOutOfRange(entry.row)"
                     :model-value="currentValue(entry.row) ?? ''"
                     @update:model-value="(v) => onScoreInput(entry.row.studentId, v ?? '')"
                     @keydown="(e: KeyboardEvent) => onKeydown(e, entry.gradeIndex)"
                   />
-                  <Button
-                    v-if="entry.row.isAdded"
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    emphasis="compact"
-                    aria-label="Retirer cet étudiant"
-                    @click="removeAddedStudent(entry.row.studentId)"
-                  >
-                    <XIcon />
-                  </Button>
+                  <!-- Emplacement réservé sur chaque ligne pour que les champs restent alignés. -->
+                  <div class="size-9 shrink-0">
+                    <Button
+                      v-if="entry.row.isAdded"
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      emphasis="compact"
+                      aria-label="Retirer cet étudiant"
+                      @click="removeAddedStudent(entry.row.studentId)"
+                    >
+                      <XIcon />
+                    </Button>
+                    <Button
+                      v-else-if="entry.row.existing"
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      emphasis="compact"
+                      aria-label="Supprimer cette note"
+                      @click="askDelete(entry.row)"
+                    >
+                      <Trash2Icon />
+                    </Button>
+                  </div>
                 </div>
               </TableCell>
             </TableRow>
@@ -317,5 +368,23 @@ function finish() {
         Terminer
       </Button>
     </div>
+
+    <AlertDialog :open="!!deleteTarget" @update:open="(v) => !v && (deleteTarget = null)">
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Supprimer cette note ?</AlertDialogTitle>
+          <AlertDialogDescription>
+            La note de {{ deleteTarget?.student.first_name }} {{ deleteTarget?.student.last_name }} en
+            {{ subjectLabel }} ne sera plus affichée.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel @click="deleteTarget = null">Annuler</AlertDialogCancel>
+          <AlertDialogAction variant="destructive" :disabled="deleteMutation.isPending.value" @click="confirmDelete">
+            Supprimer
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   </div>
 </template>
