@@ -1,34 +1,21 @@
 <script setup lang="ts">
 import { computed, onUnmounted, reactive, ref, watch, watchEffect } from 'vue'
 import { useRouter } from 'vue-router'
-import { refDebounced } from '@vueuse/core'
-import { CheckIcon, ChevronDownIcon, PlusIcon, XIcon } from '@lucide/vue'
+import { XIcon } from '@lucide/vue'
 import { Badge } from '@/design-system/ui/badge'
 import { Button } from '@/design-system/ui/button'
-import {
-  Combobox,
-  ComboboxAnchor,
-  ComboboxEmpty,
-  ComboboxGroup,
-  ComboboxInput,
-  ComboboxItem,
-  ComboboxItemIndicator,
-  ComboboxList,
-  ComboboxTrigger,
-  ComboboxViewport,
-} from '@/design-system/ui/combobox'
 import { Input } from '@/design-system/ui/input'
 import { Skeleton, TableRowsSkeleton } from '@/design-system/ui/skeleton'
-import { Spinner } from '@/design-system/ui/spinner'
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from '@/design-system/ui/table'
-import { ToggleGroup, ToggleGroupItem } from '@/design-system/ui/toggle-group'
 import { useContextStore, useCurrentAcademicYearQuery } from '@/features/academic-year'
-import { useTeachingUnitsQuery, type Subject } from '@/features/teaching-unit'
+import { useTeachingUnitsQuery } from '@/features/teaching-unit'
 import { type Student } from '@/features/student'
 import { toApiError } from '@/shared/api/errors'
 import { registerUnsavedGuard } from '@/shared/lib/unsaved-changes'
 import { isFailingScore } from '@/shared/utils/format'
-import { useEligibleStudentsQuery, useRetakeEligibleStudentsQuery, useSaveScoresMutation } from './score.queries'
+import RetakeStudentCombobox from './RetakeStudentCombobox.vue'
+import ScoreEntryFilters from './ScoreEntryFilters.vue'
+import { useEligibleStudentsQuery, useSaveScoresMutation } from './score.queries'
 import type { ExamSession } from './score.types'
 
 const errorMessage = ref<string | null>(null)
@@ -55,10 +42,6 @@ watchEffect(() => {
 })
 
 const session = ref<ExamSession>('normale')
-function onSessionChange(value: unknown) {
-  if (!value) return
-  session.value = value as ExamSession
-}
 
 const { data: eligibleStudents, isPending: eligibleStudentsPending } = useEligibleStudentsQuery(subjectId)
 const saveMutation = useSaveScoresMutation(subjectId)
@@ -125,23 +108,11 @@ const displayRows = computed<DisplayEntry[]>(() => {
   return [...native, { type: 'separator', key: 'cumul-separator' }, ...cumul]
 })
 
-const studentSearch = ref('')
-const debouncedStudentSearch = refDebounced(studentSearch, 300)
 const isRattrapage = computed(() => session.value === 'rattrapage')
-const { data: retakeSearchResults, isFetching: retakeSearchPending } = useRetakeEligibleStudentsQuery(
-  subjectId,
-  debouncedStudentSearch,
-  isRattrapage,
-)
-const retakeSearchOptions = computed(() =>
-  (retakeSearchResults.value ?? []).filter((s) => !addedStudents.value.some((a) => a.id === s.id)),
-)
+const addedStudentIds = computed(() => addedStudents.value.map((s) => s.id))
 
-function onAddStudent(value: unknown) {
-  const student = value as Student | undefined
-  if (!student) return
+function addStudent(student: Student) {
   addedStudents.value = [...addedStudents.value, student]
-  studentSearch.value = ''
 }
 
 function removeAddedStudent(studentId: number) {
@@ -228,51 +199,12 @@ function finish() {
   <div>
     <h1 class="mb-5 font-heading text-2xl font-extrabold">Saisie des notes — {{ context.level }}</h1>
 
-    <div class="mb-5.5 flex flex-wrap gap-4">
-      <div>
-        <div class="mb-1.5 text-xs font-bold tracking-wide uppercase">Matière</div>
-        <Skeleton v-if="isPending" class="h-9 w-65" />
-        <Combobox
-          v-else
-          :model-value="currentSubject"
-          by="id"
-          @update:model-value="(v) => (subjectId = (v as Subject | null)?.id ?? null)"
-        >
-          <ComboboxAnchor as-child>
-            <ComboboxTrigger as-child>
-              <Button
-                variant="outline"
-                emphasis="compact"
-                role="combobox"
-                class="min-w-65 justify-between gap-2 bg-card"
-              >
-                {{ currentSubject?.name ?? 'Sélectionner une matière' }}
-                <ChevronDownIcon class="size-4 shrink-0 opacity-50" />
-              </Button>
-            </ComboboxTrigger>
-          </ComboboxAnchor>
-          <ComboboxList align="start" class="w-75">
-            <ComboboxInput placeholder="Rechercher une matière…" />
-            <ComboboxViewport>
-              <ComboboxEmpty>Aucune matière trouvée.</ComboboxEmpty>
-              <ComboboxGroup v-for="unit in unitsWithSubjects" :key="unit.id" :heading="`${unit.code} — ${unit.name}`">
-                <ComboboxItem v-for="s in unit.subjects" :key="s.id" :value="s">
-                  {{ s.name }}
-                  <ComboboxItemIndicator><CheckIcon /></ComboboxItemIndicator>
-                </ComboboxItem>
-              </ComboboxGroup>
-            </ComboboxViewport>
-          </ComboboxList>
-        </Combobox>
-      </div>
-      <div>
-        <div class="mb-1.5 text-xs font-bold tracking-wide uppercase">Session</div>
-        <ToggleGroup :model-value="session" type="single" variant="outline" @update:model-value="onSessionChange">
-          <ToggleGroupItem value="normale">Normale</ToggleGroupItem>
-          <ToggleGroupItem value="rattrapage">Rattrapage</ToggleGroupItem>
-        </ToggleGroup>
-      </div>
-    </div>
+    <ScoreEntryFilters
+      v-model:subject-id="subjectId"
+      v-model:session="session"
+      :units="unitsWithSubjects"
+      :pending="isPending"
+    />
 
     <div class="mb-2.5 flex items-center justify-between">
       <div class="text-sm font-bold">
@@ -362,32 +294,7 @@ function finish() {
       <TableFooter v-if="isRattrapage">
         <TableRow>
           <TableCell colspan="2">
-            <Combobox :model-value="null" ignore-filter by="id" @update:model-value="onAddStudent">
-              <ComboboxAnchor as-child>
-                <ComboboxTrigger as-child>
-                  <button
-                    type="button"
-                    class="flex w-full items-center gap-2 py-1 text-sm font-bold text-muted-foreground hover:text-foreground"
-                  >
-                    <PlusIcon class="size-4" />
-                    Ajouter un étudiant au rattrapage
-                  </button>
-                </ComboboxTrigger>
-              </ComboboxAnchor>
-              <ComboboxList align="start" class="w-75">
-                <ComboboxInput v-model="studentSearch" placeholder="Nom de l'étudiant…" />
-                <ComboboxViewport>
-                  <ComboboxEmpty>
-                    <Spinner v-if="retakeSearchPending" class="size-4" />
-                    <span v-else>Aucun étudiant trouvé.</span>
-                  </ComboboxEmpty>
-                  <ComboboxItem v-for="s in retakeSearchOptions" :key="s.id" :value="s">
-                    {{ s.first_name }} {{ s.last_name }}
-                    <ComboboxItemIndicator><CheckIcon /></ComboboxItemIndicator>
-                  </ComboboxItem>
-                </ComboboxViewport>
-              </ComboboxList>
-            </Combobox>
+            <RetakeStudentCombobox :subject-id="subjectId" :excluded-ids="addedStudentIds" @add="addStudent" />
           </TableCell>
         </TableRow>
       </TableFooter>
