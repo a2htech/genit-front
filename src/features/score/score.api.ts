@@ -35,3 +35,7 @@ export async function updateScore(id: number, score: number | null): Promise<Sco
   const { data } = await apiClient.put<{ data: Score }>(`/scores/${id}`, { score })
   return data.data
 }
+
+export async function deleteScore(id: number): Promise<void> {
+  await apiClient.delete(`/scores/${id}`)
+}

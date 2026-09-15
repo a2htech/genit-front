@@ -1,6 +1,7 @@
 import { type Ref, computed } from 'vue'
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import {
+  deleteScore,
   fetchEligibleStudents,
   fetchRetakeEligibleStudents,
   storeScoresForSubject,
@@ -47,6 +48,14 @@ export function useSaveScoresMutation(subjectId: Ref<number | null>) {
         ...(create ? [storeScoresForSubject(create)] : []),
         ...update.map(({ id, score }) => updateScore(id, score)),
       ]),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: eligibleStudentsKey(subjectId.value) }),
+  })
+}
+
+export function useDeleteScoreMutation(subjectId: Ref<number | null>) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (id: number) => deleteScore(id),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: eligibleStudentsKey(subjectId.value) }),
   })
 }
