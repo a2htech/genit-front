@@ -33,18 +33,20 @@ export function useRetakeEligibleStudentsQuery(
   })
 }
 
-export function useStoreScoresMutation(subjectId: Ref<number | null>) {
-  const queryClient = useQueryClient()
-  return useMutation({
-    mutationFn: (payload: StoreScoresPayload) => storeScoresForSubject(payload),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: eligibleStudentsKey(subjectId.value) }),
-  })
+export interface SaveScoresPayload {
+  create: StoreScoresPayload | null
+  update: { id: number; score: number | null }[]
 }
 
-export function useUpdateScoreMutation(subjectId: Ref<number | null>) {
+/** Créations et corrections dans une seule mutation : un seul rafraîchissement à la fin, sans clignotement. */
+export function useSaveScoresMutation(subjectId: Ref<number | null>) {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: ({ id, score }: { id: number; score: number | null }) => updateScore(id, score),
+    mutationFn: ({ create, update }: SaveScoresPayload) =>
+      Promise.all([
+        ...(create ? [storeScoresForSubject(create)] : []),
+        ...update.map(({ id, score }) => updateScore(id, score)),
+      ]),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: eligibleStudentsKey(subjectId.value) }),
   })
 }
