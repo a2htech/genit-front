@@ -4,6 +4,8 @@ import type { AcademicStatusCode } from '@/features/student'
 /** AcademicStatusEnum::label() côté back (P/C/R/T résolus en toutes lettres). */
 export type AcademicStatusLabel = 'PASSED' | 'CONDITIONAL' | 'FAILED' | 'COMPLETED'
 
+/** Recopie AcademicStatusEnum::frenchLabel(), qui sert à l'export PDF : le bulletin à l'écran
+ *  doit dire mot pour mot ce que son PDF imprime. */
 export const STATUS_LABEL_FR: Record<AcademicStatusLabel, string> = {
   PASSED: 'Admis(e)',
   CONDITIONAL: 'Sous réserve',
