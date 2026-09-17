@@ -145,7 +145,8 @@ function isOutOfRange(row: ScoreRow): boolean {
   return value !== null && !isScoreInRange(value)
 }
 
-const filledCount = computed(() => rows.value.filter((r) => currentValue(r) !== null).length)
+// Une ligne ABS (note enregistrée à vide) compte comme saisie, au même titre qu'une note chiffrée.
+const filledCount = computed(() => rows.value.filter((r) => r.existing !== null || currentValue(r) !== null).length)
 const progressLabel = computed(() => `${filledCount.value}/${rows.value.length}`)
 
 /** Lignes touchées dont la valeur diffère de l'enregistré : création, correction ou effacement. */
