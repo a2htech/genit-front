@@ -24,6 +24,7 @@ import { FullPageLoader } from '@/design-system/ui/full-page-loader'
 import { LEVELS, useContextStore, useCurrentAcademicYearQuery, type Level } from '@/features/academic-year'
 import { useAuthStore } from '@/features/auth'
 import { discardUnsavedChanges, hasUnsavedChanges } from '@/shared/lib/unsaved-changes'
+import { formatAcademicYear } from '@/shared/utils/format'
 
 const route = useRoute()
 const context = useContextStore()
@@ -32,9 +33,10 @@ const { data: currentYear } = useCurrentAcademicYearQuery()
 
 const showChrome = computed(() => route.meta.requiresContext !== false)
 
-const academicYearLabel = computed(() =>
-  currentYear.value ? `${currentYear.value.year - 1}-${currentYear.value.year}` : null,
-)
+/** Une page de détail (ex. la fiche étudiant) garde l'onglet de sa liste actif via `meta.nav`. */
+const activeNav = computed(() => (route.meta.nav as string | undefined) ?? route.name)
+
+const academicYearLabel = computed(() => (currentYear.value ? formatAcademicYear(currentYear.value.year) : null))
 
 const navItems: { name: string; label: string }[] = [
   { name: 'students', label: 'Étudiants' },
@@ -95,7 +97,7 @@ function cancelLevelChange() {
             :to="{ name: item.name }"
             class="border-b-4 px-3.5 py-2.5 text-sm font-bold whitespace-nowrap no-underline transition-colors duration-100"
             :class="
-              route.name === item.name
+              activeNav === item.name
                 ? 'border-accent text-foreground'
                 : 'border-transparent text-foreground/70 hover:border-accent/40 hover:text-foreground'
             "

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { reactive, ref, watch } from 'vue'
+import { computed, reactive, ref, watch } from 'vue'
 import { Button } from '@/design-system/ui/button'
 import {
   Dialog,
@@ -13,37 +13,87 @@ import { Field, FieldGroup, FieldLabel } from '@/design-system/ui/field'
 import { Input } from '@/design-system/ui/input'
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from '@/design-system/ui/select'
 import { Toggle } from '@/design-system/ui/toggle'
-import type { StudentFormValues, Sex } from './student.types'
+import { toApiError } from '@/shared/api/errors'
+import { useCreateStudentMutation, useUpdateStudentMutation } from './student.queries'
+import { SEX_LABELS, type Student, type StudentFormValues, type Sex } from './student.types'
 
+/** `student` null = création (toujours en L1) ; sinon édition de cet étudiant. */
 const props = defineProps<{
   open: boolean
-  title: string
-  initialValues: StudentFormValues
-  editing: boolean
-  initialRegistered: boolean
-  saving?: boolean
+  student: Student | null
 }>()
 
 const emit = defineEmits<{
-  save: [values: StudentFormValues, registered: boolean]
+  saved: []
   'update:open': [open: boolean]
 }>()
 
-const sexOptions: { value: Sex; label: string }[] = [
-  { value: 'M', label: 'Masculin' },
-  { value: 'F', label: 'Féminin' },
-]
+const sexOptions = (Object.keys(SEX_LABELS) as Sex[]).map((value) => ({ value, label: SEX_LABELS[value] }))
 
-const form = reactive<StudentFormValues>({ ...props.initialValues })
-const registered = ref(props.initialRegistered)
+const emptyForm: StudentFormValues = {
+  first_name: '',
+  last_name: '',
+  sex: 'M',
+  birthday: '',
+  birthplace: '',
+  address: '',
+  phone: '',
+}
+
+function toFormValues(s: Student): StudentFormValues {
+  return {
+    first_name: s.first_name,
+    last_name: s.last_name ?? '',
+    sex: s.sex,
+    // <input type="date"> attend YYYY-MM-DD ; l'API renvoie un datetime ISO complet.
+    birthday: s.birthday.slice(0, 10),
+    birthplace: s.birthplace ?? '',
+    address: s.address ?? '',
+    phone: s.phone ?? '',
+  }
+}
+
+const form = reactive<StudentFormValues>({ ...emptyForm })
+const registered = ref(true)
+const errorMessage = ref<string | null>(null)
+
+const editing = computed(() => props.student !== null)
+const title = computed(() => (editing.value ? "Modifier l'étudiant" : 'Nouvel étudiant (L1)'))
+
 watch(
-  () => props.initialValues,
-  (v) => Object.assign(form, v),
+  () => props.open,
+  (open) => {
+    if (!open) return
+    errorMessage.value = null
+    Object.assign(form, props.student ? toFormValues(props.student) : emptyForm)
+    registered.value = props.student?.registered ?? true
+  },
+  { immediate: true },
 )
-watch(
-  () => props.initialRegistered,
-  (v) => (registered.value = v),
-)
+
+const createMutation = useCreateStudentMutation()
+const updateMutation = useUpdateStudentMutation()
+const saving = computed(() => createMutation.isPending.value || updateMutation.isPending.value)
+
+async function save() {
+  errorMessage.value = null
+  try {
+    if (props.student) {
+      // `phone` est `required` (pas `sometimes`) côté back : le payload part toujours complet.
+      await updateMutation.mutateAsync({
+        id: props.student.id,
+        payload: { ...form, registered: registered.value },
+      })
+    } else {
+      await createMutation.mutateAsync({ ...form })
+    }
+  } catch (e) {
+    errorMessage.value = toApiError(e).message
+    return
+  }
+  emit('saved')
+  emit('update:open', false)
+}
 </script>
 
 <template>
@@ -53,6 +103,13 @@ watch(
         <DialogTitle>{{ title }}</DialogTitle>
         <DialogDescription class="sr-only">Formulaire étudiant</DialogDescription>
       </DialogHeader>
+
+      <div
+        v-if="errorMessage"
+        class="border-2 border-destructive bg-destructive/10 p-3 text-sm font-semibold text-destructive"
+      >
+        {{ errorMessage }}
+      </div>
 
       <FieldGroup>
         <Field>
@@ -102,7 +159,7 @@ watch(
 
       <DialogFooter>
         <Button variant="secondary" emphasis="compact" @click="emit('update:open', false)"> Annuler </Button>
-        <Button :disabled="saving" @click="emit('save', { ...form }, registered)">Enregistrer</Button>
+        <Button :disabled="saving" @click="save">Enregistrer</Button>
       </DialogFooter>
     </DialogContent>
   </Dialog>

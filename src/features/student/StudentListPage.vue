@@ -1,16 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/design-system/ui/alert-dialog'
+import { IdCardIcon } from '@lucide/vue'
 import { Badge } from '@/design-system/ui/badge'
 import { Button } from '@/design-system/ui/button'
 import { Input } from '@/design-system/ui/input'
@@ -18,16 +9,10 @@ import { Pagination, PaginationContent, PaginationItem } from '@/design-system/u
 import { TableRowsSkeleton } from '@/design-system/ui/skeleton'
 import { Table, TableBody, TableCell, TableEmpty, TableHead, TableHeader, TableRow } from '@/design-system/ui/table'
 import { useContextStore } from '@/features/academic-year'
-import { toApiError } from '@/shared/api/errors'
 import { formatDate } from '@/shared/utils/format'
-import {
-  useCreateStudentMutation,
-  useDeleteStudentMutation,
-  useStudentsQuery,
-  useUpdateStudentMutation,
-} from './student.queries'
+import { useStudentsQuery } from './student.queries'
 import StudentFormModal from './StudentFormModal.vue'
-import type { Student, StudentFormValues } from './student.types'
+import type { Student } from './student.types'
 
 const router = useRouter()
 const context = useContextStore()
@@ -35,7 +20,6 @@ const context = useContextStore()
 const PAGE_SIZE = 10
 const search = ref('')
 const page = ref(1)
-const errorMessage = ref<string | null>(null)
 watch(search, () => (page.value = 1))
 
 const { data, isPending } = useStudentsQuery()
@@ -51,111 +35,33 @@ const totalPages = computed(() => Math.max(1, Math.ceil(total.value / PAGE_SIZE)
 const pageNumbers = computed(() => Array.from({ length: totalPages.value }, (_, i) => i + 1))
 const students = computed(() => filtered.value.slice((page.value - 1) * PAGE_SIZE, page.value * PAGE_SIZE))
 
-const createMutation = useCreateStudentMutation()
-const updateMutation = useUpdateStudentMutation()
-const deleteMutation = useDeleteStudentMutation()
-
 function registeredTone(registered: boolean) {
   return registered ? 'success' : 'warning'
 }
 
-const emptyForm: StudentFormValues = {
-  first_name: '',
-  last_name: '',
-  sex: 'M',
-  birthday: '',
-  birthplace: '',
-  address: '',
-  phone: '',
-}
-const modalOpen = ref(false)
-const modalTitle = ref('')
-const editingId = ref<number | null>(null)
-const editingRegistered = ref(true)
-const formValues = ref<StudentFormValues>({ ...emptyForm })
-
-function openNew() {
-  editingId.value = null
-  modalTitle.value = 'Nouvel étudiant (L1)'
-  formValues.value = { ...emptyForm }
-  modalOpen.value = true
+function fullName(s: Student) {
+  return `${s.first_name} ${s.last_name ?? ''}`.trim()
 }
 
-function openEdit(s: Student) {
-  editingId.value = s.id
-  modalTitle.value = "Modifier l'étudiant"
-  editingRegistered.value = s.registered
-  formValues.value = {
-    first_name: s.first_name,
-    last_name: s.last_name ?? '',
-    sex: s.sex,
-    // <input type="date"> attend YYYY-MM-DD ; l'API renvoie un datetime ISO complet.
-    birthday: s.birthday.slice(0, 10),
-    birthplace: s.birthplace ?? '',
-    address: s.address ?? '',
-    phone: s.phone ?? '',
-  }
-  modalOpen.value = true
-}
-
-async function save(values: StudentFormValues, registered: boolean) {
-  errorMessage.value = null
-  try {
-    if (editingId.value) {
-      await updateMutation.mutateAsync({ id: editingId.value, payload: { ...values, registered } })
-    } else {
-      await createMutation.mutateAsync(values)
-    }
-  } catch (e) {
-    errorMessage.value = toApiError(e).message
-    return
-  }
-  modalOpen.value = false
-}
-
-const deleteTarget = ref<Student | null>(null)
-// AlertDialogAction closes the dialog (nulling deleteTarget via @update:open) in the
-// same click before this handler runs, so the id to delete is captured separately.
-let deleteTargetId: number | null = null
-
-function askDelete(s: Student) {
-  deleteTarget.value = s
-  deleteTargetId = s.id
-}
-
-async function confirmDelete() {
-  if (deleteTargetId === null) return
-  const id = deleteTargetId
-  deleteTargetId = null
-  errorMessage.value = null
-  try {
-    await deleteMutation.mutateAsync(id)
-  } catch (e) {
-    errorMessage.value = toApiError(e).message
-    return
-  }
-  deleteTarget.value = null
-}
+// La liste navigue et crée ; éditer et supprimer vivent sur la fiche, au vu de qui est visé.
+const formOpen = ref(false)
 
 function openTranscript(s: Student) {
   router.push({ name: 'transcript', params: { studentId: String(s.id) } })
+}
+
+function openDetail(s: Student) {
+  router.push({ name: 'student-detail', params: { studentId: String(s.id) } })
 }
 </script>
 
 <template>
   <div class="mb-5 flex flex-wrap items-center justify-between gap-4">
     <h1 class="font-heading text-2xl font-extrabold">Étudiants — {{ context.level }}</h1>
-    <Button @click="openNew">+ Nouvel étudiant</Button>
+    <Button @click="formOpen = true">+ Nouvel étudiant</Button>
   </div>
 
   <Input v-model="search" placeholder="Rechercher un étudiant (nom, prénom)…" class="mb-4.5" />
-
-  <div
-    v-if="errorMessage"
-    class="mb-4 border-2 border-destructive bg-destructive/10 p-3 text-sm font-semibold text-destructive"
-  >
-    {{ errorMessage }}
-  </div>
 
   <Table>
     <TableHeader>
@@ -192,10 +98,17 @@ function openTranscript(s: Student) {
             </Badge>
           </TableCell>
           <TableCell class="text-right" @click.stop>
-            <div class="flex justify-end gap-2">
-              <Button emphasis="compact" size="sm" @click="openEdit(s)">Éditer</Button>
-              <Button variant="destructive" emphasis="compact" size="sm" @click="askDelete(s)"> Suppr. </Button>
-            </div>
+            <!-- aria-label repris du libellé visible : le nom accessible doit le contenir (WCAG Label in Name). -->
+            <Button
+              variant="outline"
+              emphasis="compact"
+              size="sm"
+              :aria-label="`Infos de ${fullName(s)}`"
+              @click="openDetail(s)"
+            >
+              <IdCardIcon class="size-3.5" aria-hidden="true" />
+              Infos
+            </Button>
           </TableCell>
         </TableRow>
       </template>
@@ -210,31 +123,5 @@ function openTranscript(s: Student) {
     </PaginationContent>
   </Pagination>
 
-  <StudentFormModal
-    v-model:open="modalOpen"
-    :title="modalTitle"
-    :initial-values="formValues"
-    :editing="editingId !== null"
-    :initial-registered="editingRegistered"
-    :saving="createMutation.isPending.value || updateMutation.isPending.value"
-    @save="save"
-  />
-
-  <AlertDialog :open="!!deleteTarget" @update:open="(v) => !v && (deleteTarget = null)">
-    <AlertDialogContent>
-      <AlertDialogHeader>
-        <AlertDialogTitle>Supprimer cet étudiant ?</AlertDialogTitle>
-        <AlertDialogDescription>
-          {{ deleteTarget?.first_name }} {{ deleteTarget?.last_name }} sera définitivement supprimé(e). Cette action est
-          irréversible.
-        </AlertDialogDescription>
-      </AlertDialogHeader>
-      <AlertDialogFooter>
-        <AlertDialogCancel @click="deleteTarget = null">Annuler</AlertDialogCancel>
-        <AlertDialogAction variant="destructive" :disabled="deleteMutation.isPending.value" @click="confirmDelete">
-          Supprimer
-        </AlertDialogAction>
-      </AlertDialogFooter>
-    </AlertDialogContent>
-  </AlertDialog>
+  <StudentFormModal v-model:open="formOpen" :student="null" />
 </template>

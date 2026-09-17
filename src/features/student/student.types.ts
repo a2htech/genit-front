@@ -2,13 +2,28 @@ import type { Level } from '@/features/academic-year'
 
 export type Sex = 'M' | 'F'
 
+export const SEX_LABELS: Record<Sex, string> = {
+  M: 'Masculin',
+  F: 'Féminin',
+}
+
 /** P/C/R/T calculé côté back (AcademicStatusEnum) : Passant/Cumul/Refus/Terminé. */
 export type AcademicStatusCode = 'P' | 'C' | 'R' | 'T'
 
+/** Le même code dit comme une décision annuelle : Résultats, Dashboard, bascule d'année. */
 export const ACADEMIC_STATUS_LABELS: Record<AcademicStatusCode, string> = {
   P: 'Admis(e)',
   C: 'Sous réserve',
   R: 'Refusé(e)',
+  T: 'Terminé',
+}
+
+/** Le même code dit comme la situation de l'étudiant dans son cursus : fiche étudiant.
+ *  T n'y apparaît jamais (AcademicStatusEnum::states() l'exclut), mais complète le Record. */
+export const STUDENT_STATE_LABELS: Record<AcademicStatusCode, string> = {
+  P: 'Passant(e)',
+  C: 'Cumulant(e)',
+  R: 'Redoublant(e)',
   T: 'Diplômé(e)',
 }
 
