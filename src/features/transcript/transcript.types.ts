@@ -93,6 +93,14 @@ export interface AnnualResult {
   failed_subjects: FailedSubject[]
 }
 
+/** AcademicStatusEnum::allowsCumul()/isTerminal() côté back : pas de cumul en L3/M2, seul M2 est terminal. */
+export function isDecisionApplicable(status: AcademicStatusCode, level: Level): boolean {
+  if (status === 'P') return level !== 'M2'
+  if (status === 'C') return level !== 'L3' && level !== 'M2'
+  if (status === 'T') return level === 'M2'
+  return true
+}
+
 /** Nombre de décisions par statut (P/C/R/T), pour une classe, sur l'année courante. */
 export type DecisionCounts = Record<AcademicStatusCode, number>
 

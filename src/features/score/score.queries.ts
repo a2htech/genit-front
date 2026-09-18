@@ -21,15 +21,11 @@ export function useEligibleStudentsQuery(subjectId: Ref<number | null>) {
   })
 }
 
-export function useRetakeEligibleStudentsQuery(
-  subjectId: Ref<number | null>,
-  name: Ref<string>,
-  enabled: Ref<boolean>,
-) {
+export function useRetakeEligibleStudentsQuery(subjectId: Ref<number | null>, name: Ref<string>) {
   return useQuery({
     queryKey: computed(() => ['subjects', subjectId.value, 'retake-eligible-students', name.value] as const),
     queryFn: () => fetchRetakeEligibleStudents(subjectId.value!, name.value),
-    enabled: computed(() => enabled.value && subjectId.value !== null),
+    enabled: computed(() => subjectId.value !== null),
     placeholderData: keepPreviousData,
   })
 }

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { Alert } from '@/design-system/ui/alert'
 import { Button } from '@/design-system/ui/button'
 import { Card } from '@/design-system/ui/card'
 import {
@@ -14,13 +15,14 @@ import {
 import { Field, FieldLabel } from '@/design-system/ui/field'
 import { Input } from '@/design-system/ui/input'
 import { Skeleton } from '@/design-system/ui/skeleton'
-import { ACADEMIC_STATUS_LABELS, type AcademicStatusCode } from '@/features/student'
+import { ACADEMIC_STATUS_CODES, ACADEMIC_STATUS_LABELS, type AcademicStatusCode } from '@/features/student'
 import {
+  isDecisionApplicable,
   useAnnualResultsSummaryQuery,
   useCalculateAllAnnualResultsMutation,
   useMissingAnnualResultsQuery,
 } from '@/features/transcript'
-import { toApiError } from '@/shared/api/errors'
+import { apiErrorMessage } from '@/shared/api/errors'
 import { useCreateAcademicYearMutation, useCurrentAcademicYearQuery } from './academic-year.queries'
 import { LEVELS, type Level } from './academic-year.types'
 import { useContextStore } from './context.store'
@@ -42,13 +44,12 @@ async function calculateMissingResults() {
   try {
     await calculateMutation.mutateAsync()
   } catch (e) {
-    calculateErrorMessage.value = toApiError(e).message
+    calculateErrorMessage.value = apiErrorMessage(e)
   }
 }
 
 const { data: summary, isPending: summaryPending } = useAnnualResultsSummaryQuery()
 
-const STATUS_ORDER: AcademicStatusCode[] = ['P', 'C', 'R', 'T']
 const STATUS_COLOR_CLASS: Record<AcademicStatusCode, string> = {
   P: 'bg-success',
   C: 'bg-warning',
@@ -56,19 +57,11 @@ const STATUS_COLOR_CLASS: Record<AcademicStatusCode, string> = {
   T: 'bg-accent',
 }
 
-/** Mêmes règles que sur la page Décisions (AcademicStatusEnum::allowsCumul()/isTerminal() côté back). */
-function isDecisionApplicable(status: AcademicStatusCode, level: Level): boolean {
-  if (status === 'P') return level !== 'M2'
-  if (status === 'C') return level !== 'L3' && level !== 'M2'
-  if (status === 'T') return level === 'M2'
-  return true
-}
-
 const summaryRows = computed(() =>
   LEVELS.map(({ value: level }) => {
     const counts = summary.value?.[level] ?? { P: 0, C: 0, R: 0, T: 0 }
     const total = counts.P + counts.C + counts.R + counts.T
-    const segments = STATUS_ORDER.filter((status) => isDecisionApplicable(status, level)).map((status) => ({
+    const segments = ACADEMIC_STATUS_CODES.filter((status) => isDecisionApplicable(status, level)).map((status) => ({
       status,
       label: ACADEMIC_STATUS_LABELS[status],
       count: counts[status],
@@ -88,16 +81,24 @@ const nextYear = computed(() => (currentYear.value ? currentYear.value.year + 1 
 
 const switchModalOpen = ref(false)
 const switchConfirmText = ref('')
+const switchErrorMessage = ref<string | null>(null)
 const switchConfirmValid = computed(() => switchConfirmText.value === String(nextYear.value))
 
 function openSwitchConfirm() {
   switchConfirmText.value = ''
+  switchErrorMessage.value = null
   switchModalOpen.value = true
 }
 
 async function confirmSwitch() {
   if (!switchConfirmValid.value || nextYear.value === null) return
-  await createMutation.mutateAsync(nextYear.value)
+  switchErrorMessage.value = null
+  try {
+    await createMutation.mutateAsync(nextYear.value)
+  } catch (e) {
+    switchErrorMessage.value = apiErrorMessage(e)
+    return
+  }
   switchModalOpen.value = false
 }
 </script>
@@ -126,12 +127,7 @@ async function confirmSwitch() {
       </Button>
     </Card>
 
-    <div
-      v-if="calculateErrorMessage"
-      class="mb-6 border-2 border-destructive bg-destructive/10 p-3 text-sm font-semibold text-destructive"
-    >
-      {{ calculateErrorMessage }}
-    </div>
+    <Alert v-if="calculateErrorMessage" variant="destructive" class="mb-6">{{ calculateErrorMessage }}</Alert>
 
     <h2 class="mb-3 font-heading text-lg font-extrabold">Résumé des décisions</h2>
     <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
@@ -196,13 +192,15 @@ async function confirmSwitch() {
           monde. <strong>Cette action est irréversible.</strong>
         </div>
 
+        <Alert v-if="switchErrorMessage" variant="destructive">{{ switchErrorMessage }}</Alert>
+
         <Field>
           <FieldLabel>Tapez « {{ nextYear }} » pour confirmer</FieldLabel>
           <Input v-model="switchConfirmText" />
         </Field>
 
         <DialogFooter>
-          <Button variant="secondary" emphasis="compact" @click="switchModalOpen = false"> Annuler </Button>
+          <Button variant="secondary" emphasis="compact" @click="switchModalOpen = false">Annuler</Button>
           <Button
             variant="destructive"
             :disabled="!switchConfirmValid || createMutation.isPending.value"

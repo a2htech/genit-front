@@ -2,15 +2,17 @@
 import { computed, ref, type Component } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ArrowLeftIcon, CalendarIcon, FileTextIcon, MapPinIcon, PencilIcon, PhoneIcon, Trash2Icon } from '@lucide/vue'
+import { Alert } from '@/design-system/ui/alert'
 import { Badge, type BadgeVariants } from '@/design-system/ui/badge'
 import { Button } from '@/design-system/ui/button'
+import { ConfirmDialog } from '@/design-system/ui/confirm-dialog'
 import { Empty, EmptyDescription, EmptyTitle } from '@/design-system/ui/empty'
 import { Skeleton } from '@/design-system/ui/skeleton'
+import { apiErrorMessage } from '@/shared/api/errors'
 import { formatAcademicYear, formatDate } from '@/shared/utils/format'
-import StudentDeleteDialog from './StudentDeleteDialog.vue'
 import StudentFormModal from './StudentFormModal.vue'
-import { useStudentQuery } from './student.queries'
-import { SEX_LABELS, STUDENT_STATE_LABELS, type AcademicStatusCode, type Student } from './student.types'
+import { useDeleteStudentMutation, useStudentQuery } from './student.queries'
+import { ACADEMIC_STATUS_VARIANTS, SEX_LABELS, STUDENT_STATE_LABELS, studentFullName } from './student.types'
 
 const route = useRoute()
 const router = useRouter()
@@ -21,13 +23,6 @@ const studentId = computed(() => {
 })
 
 const { data: student, isPending, isError } = useStudentQuery(studentId)
-
-const STATE_VARIANTS: Record<AcademicStatusCode, BadgeVariants['variant']> = {
-  P: 'success',
-  C: 'warning',
-  R: 'destructive',
-  T: 'accent',
-}
 
 const initials = computed(() => {
   const s = student.value
@@ -69,20 +64,33 @@ const sections = computed<{ title: string; rows: InfoRow[] }[]>(() => {
       rows: [
         { label: 'Niveau', value: s.class },
         { label: 'Année universitaire', value: formatAcademicYear(s.class_year) },
-        { label: 'Statut', value: STUDENT_STATE_LABELS[s.state], variant: STATE_VARIANTS[s.state] },
+        { label: 'Statut', value: STUDENT_STATE_LABELS[s.state], variant: ACADEMIC_STATUS_VARIANTS[s.state] },
       ],
     },
   ]
 })
 
 const formOpen = ref(false)
-const deleteTarget = ref<Student | null>(null)
 
-function openTranscript(id: number) {
-  router.push({ name: 'transcript', params: { studentId: String(id) } })
+const deleteOpen = ref(false)
+const deleteError = ref<string | null>(null)
+const deleteMutation = useDeleteStudentMutation()
+
+function askDelete() {
+  deleteError.value = null
+  deleteOpen.value = true
 }
 
-function backToList() {
+async function confirmDelete() {
+  if (!student.value) return
+  deleteError.value = null
+  try {
+    await deleteMutation.mutateAsync(student.value.id)
+  } catch (e) {
+    deleteError.value = apiErrorMessage(e)
+    return
+  }
+  deleteOpen.value = false
   router.push({ name: 'students' })
 }
 </script>
@@ -111,14 +119,16 @@ function backToList() {
     <EmptyDescription>
       Cet étudiant n'existe pas, ou n'est pas inscrit sur l'année universitaire en cours.
     </EmptyDescription>
-    <Button class="mt-4" @click="backToList">Retour à la liste</Button>
+    <Button as-child class="mt-4">
+      <RouterLink :to="{ name: 'students' }">Retour à la liste</RouterLink>
+    </Button>
   </Empty>
 
   <div v-else class="border-2 border-border bg-card shadow-brutal-lg">
     <div class="flex flex-wrap items-center justify-between gap-8 border-b-2 border-border p-10">
       <div class="min-w-70 flex-1">
         <div class="flex flex-wrap items-center gap-2.5">
-          <Badge :variant="STATE_VARIANTS[student.state]">{{ STUDENT_STATE_LABELS[student.state] }}</Badge>
+          <Badge :variant="ACADEMIC_STATUS_VARIANTS[student.state]">{{ STUDENT_STATE_LABELS[student.state] }}</Badge>
           <Badge :variant="student.registered ? 'success' : 'warning'">
             {{ student.registered ? 'Inscrit' : 'Non inscrit' }}
           </Badge>
@@ -134,8 +144,12 @@ function backToList() {
 
         <div class="mt-6 flex flex-wrap gap-2">
           <Button variant="secondary" @click="formOpen = true"><PencilIcon /> Éditer</Button>
-          <Button variant="secondary" @click="openTranscript(student.id)"><FileTextIcon /> Voir le bulletin</Button>
-          <Button variant="destructive" @click="deleteTarget = student"><Trash2Icon /> Supprimer</Button>
+          <Button variant="secondary" as-child>
+            <RouterLink :to="{ name: 'transcript', params: { studentId: student.id } }">
+              <FileTextIcon /> Voir le bulletin
+            </RouterLink>
+          </Button>
+          <Button variant="destructive" @click="askDelete"><Trash2Icon /> Supprimer</Button>
         </div>
       </div>
 
@@ -173,5 +187,16 @@ function backToList() {
   </div>
 
   <StudentFormModal v-model:open="formOpen" :student="student ?? null" />
-  <StudentDeleteDialog v-model:student="deleteTarget" @deleted="backToList" />
+  <ConfirmDialog
+    v-if="student"
+    v-model:open="deleteOpen"
+    title="Supprimer cet étudiant ?"
+    :description="`${studentFullName(student)} sera définitivement supprimé(e). Cette action est irréversible.`"
+    confirm-label="Supprimer"
+    destructive
+    :pending="deleteMutation.isPending.value"
+    @confirm="confirmDelete"
+  >
+    <Alert v-if="deleteError" variant="destructive">{{ deleteError }}</Alert>
+  </ConfirmDialog>
 </template>

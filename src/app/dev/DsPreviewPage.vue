@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { ref } from 'vue'
+import { Alert } from '@/design-system/ui/alert'
 import { Badge } from '@/design-system/ui/badge'
 import { Button } from '@/design-system/ui/button'
+import { ConfirmDialog } from '@/design-system/ui/confirm-dialog'
 import { Empty, EmptyDescription, EmptyTitle } from '@/design-system/ui/empty'
 import { Field, FieldGroup, FieldLabel } from '@/design-system/ui/field'
 import { FullPageLoader } from '@/design-system/ui/full-page-loader'
@@ -27,6 +29,7 @@ const text = ref('')
 const select = ref('a')
 const toggle = ref('a')
 const page = ref(1)
+const confirmOpen = ref(false)
 </script>
 
 <template>
@@ -90,6 +93,15 @@ const page = ref(1)
         <Badge variant="destructive">Destructive</Badge>
         <Badge variant="accent">Accent</Badge>
         <Badge variant="outline">Outline</Badge>
+      </div>
+    </section>
+
+    <section class="mb-8">
+      <h2 class="mb-3 font-heading text-base font-extrabold">Alert</h2>
+      <div class="flex max-w-2xl flex-col gap-3">
+        <Alert>Information neutre.</Alert>
+        <Alert variant="destructive">Le serveur a refusé la requête.</Alert>
+        <Alert variant="warning">Une note doit être comprise entre 0 et 20.</Alert>
       </div>
     </section>
 
@@ -178,6 +190,19 @@ const page = ref(1)
           </DialogFooter>
         </DialogContent>
       </Dialog>
+    </section>
+
+    <section class="mb-8">
+      <h2 class="mb-3 font-heading text-base font-extrabold">ConfirmDialog</h2>
+      <Button variant="destructive" emphasis="compact" size="sm" @click="confirmOpen = true">Supprimer…</Button>
+      <ConfirmDialog
+        v-model:open="confirmOpen"
+        title="Supprimer cet élément ?"
+        description="Cette action est irréversible."
+        confirm-label="Supprimer"
+        destructive
+        @confirm="confirmOpen = false"
+      />
     </section>
   </div>
 </template>
