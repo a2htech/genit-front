@@ -23,6 +23,18 @@ export function useStudentsQuery() {
   })
 }
 
+/** Filtre partagé par la liste et la navigation du bulletin : les deux parcourent les étudiants dans le même ordre. */
+export function useFilteredStudents(search: Ref<string>) {
+  const query = useStudentsQuery()
+  const filtered = computed(() => {
+    const term = search.value.toLowerCase().trim()
+    const list = query.data.value ?? []
+    if (!term) return list
+    return list.filter((s) => `${s.first_name} ${s.last_name ?? ''} ${s.id}`.toLowerCase().includes(term))
+  })
+  return { ...query, filtered }
+}
+
 /** `GET /students/{id}` est sous CurrentAcademicYearScope : un étudiant d'une autre année ressort en 404, pas la peine de réessayer. */
 export function useStudentQuery(id: Ref<number | null>) {
   return useQuery({

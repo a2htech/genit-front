@@ -3,12 +3,14 @@ import { fetchAllPages, type LaravelPage } from '@/shared/api/pagination'
 import type { Level } from '@/features/academic-year'
 import type { Student, StudentFormValues, StudentUpdatePayload } from './student.types'
 
+/** `GET /students` n'a pas d'ORDER BY : on fixe l'ordre ici, sinon liste et navigation du bulletin divergent. */
 export async function fetchStudents(level: Level): Promise<Student[]> {
-  return fetchAllPages((page) =>
+  const students = await fetchAllPages((page) =>
     apiClient
       .get<LaravelPage<Student>>('/students', { params: { class: level, per_page: 100, page } })
       .then((r) => r.data),
   )
+  return students.sort((a, b) => a.id - b.id)
 }
 
 export async function fetchStudent(id: number): Promise<Student> {
