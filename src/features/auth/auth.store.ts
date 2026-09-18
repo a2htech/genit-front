@@ -1,10 +1,9 @@
 import { defineStore } from 'pinia'
-import { useAuth, useUser } from '@clerk/vue'
+import { useAuth } from '@clerk/vue'
 import { watch } from 'vue'
 
 export const useAuthStore = defineStore('auth', () => {
-  const { isSignedIn, isLoaded, userId, signOut } = useAuth()
-  const { user } = useUser()
+  const { isSignedIn, isLoaded, signOut } = useAuth()
 
   /** Le guard de route doit attendre l'hydratation de la session Clerk avant de trancher. */
   function waitUntilLoaded(): Promise<void> {
@@ -19,5 +18,5 @@ export const useAuthStore = defineStore('auth', () => {
     })
   }
 
-  return { isSignedIn, isLoaded, userId, user, signOut, waitUntilLoaded }
+  return { isSignedIn, isLoaded, signOut, waitUntilLoaded }
 })

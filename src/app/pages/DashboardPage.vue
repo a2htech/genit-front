@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { useRouter } from 'vue-router'
 import {
   AlertTriangleIcon,
   ClipboardCheckIcon,
@@ -19,10 +18,8 @@ import { Skeleton, StatCardSkeleton } from '@/design-system/ui/skeleton'
 import { StatTile } from '@/design-system/ui/stat-tile'
 import { LEVELS } from '@/features/academic-year'
 import { isAdminDashboard, useDashboardQuery } from '@/features/dashboard'
-import { ACADEMIC_STATUS_LABELS, type AcademicStatusCode } from '@/features/student'
-import type { BadgeVariants } from '@/design-system/ui/badge'
+import { ACADEMIC_STATUS_CODES, ACADEMIC_STATUS_LABELS, ACADEMIC_STATUS_VARIANTS } from '@/features/student'
 
-const router = useRouter()
 const { data, isPending } = useDashboardQuery()
 
 const admin = computed(() => (data.value && isAdminDashboard(data.value) ? data.value : null))
@@ -31,22 +28,14 @@ const studentsByClass = computed(() =>
   LEVELS.map((level) => ({ label: level.value, value: data.value?.students.byClass[level.value] ?? 0 })),
 )
 
-const STATUS_ORDER: AcademicStatusCode[] = ['P', 'C', 'R', 'T']
-const STATUS_VARIANT: Record<AcademicStatusCode, BadgeVariants['variant']> = {
-  P: 'success',
-  C: 'warning',
-  R: 'destructive',
-  T: 'accent',
-}
-
 const statusSegments = computed(() => {
   const byStatus = admin.value?.annualResults.byStatus
   if (!byStatus) return []
-  return STATUS_ORDER.map((code) => ({
+  return ACADEMIC_STATUS_CODES.map((code) => ({
     key: code,
     label: ACADEMIC_STATUS_LABELS[code],
     value: byStatus[code] ?? 0,
-    variant: STATUS_VARIANT[code],
+    variant: ACADEMIC_STATUS_VARIANTS[code],
   }))
 })
 
@@ -127,9 +116,13 @@ function formatNumber(value: number): string {
     </template>
 
     <div class="flex flex-wrap gap-3.5">
-      <Button variant="secondary" @click="router.push({ name: 'scores' })">Saisir des notes</Button>
-      <Button variant="secondary" @click="router.push({ name: 'students' })">Gérer les étudiants</Button>
-      <Button variant="secondary" @click="router.push({ name: 'decisions' })">Voir les résultats</Button>
+      <Button variant="secondary" as-child><RouterLink :to="{ name: 'scores' }">Saisir des notes</RouterLink></Button>
+      <Button variant="secondary" as-child>
+        <RouterLink :to="{ name: 'students' }">Gérer les étudiants</RouterLink>
+      </Button>
+      <Button variant="secondary" as-child>
+        <RouterLink :to="{ name: 'decisions' }">Voir les résultats</RouterLink>
+      </Button>
     </div>
   </div>
 </template>

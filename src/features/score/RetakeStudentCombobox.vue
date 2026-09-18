@@ -14,7 +14,7 @@ import {
   ComboboxViewport,
 } from '@/design-system/ui/combobox'
 import { Spinner } from '@/design-system/ui/spinner'
-import type { Student } from '@/features/student'
+import { studentFullName, type Student } from '@/features/student'
 import { useRetakeEligibleStudentsQuery } from './score.queries'
 
 const props = defineProps<{
@@ -26,12 +26,7 @@ const emit = defineEmits<{ add: [student: Student] }>()
 
 const search = ref('')
 const debouncedSearch = refDebounced(search, 300)
-// Monté uniquement en session de rattrapage : la requête peut rester toujours active.
-const { data: results, isFetching } = useRetakeEligibleStudentsQuery(
-  toRef(props, 'subjectId'),
-  debouncedSearch,
-  ref(true),
-)
+const { data: results, isFetching } = useRetakeEligibleStudentsQuery(toRef(props, 'subjectId'), debouncedSearch)
 const options = computed(() => (results.value ?? []).filter((s) => !props.excludedIds.includes(s.id)))
 
 function onSelect(value: unknown) {
@@ -63,7 +58,7 @@ function onSelect(value: unknown) {
           <span v-else>Aucun étudiant trouvé.</span>
         </ComboboxEmpty>
         <ComboboxItem v-for="s in options" :key="s.id" :value="s">
-          {{ s.first_name }} {{ s.last_name }}
+          {{ studentFullName(s) }}
           <ComboboxItemIndicator><CheckIcon /></ComboboxItemIndicator>
         </ComboboxItem>
       </ComboboxViewport>

@@ -12,7 +12,7 @@ import { useContextStore } from '@/features/academic-year'
 import { formatDate } from '@/shared/utils/format'
 import { useFilteredStudents } from './student.queries'
 import StudentFormModal from './StudentFormModal.vue'
-import type { Student } from './student.types'
+import { studentFullName, type Student } from './student.types'
 
 const router = useRouter()
 const context = useContextStore()
@@ -27,14 +27,6 @@ const total = computed(() => filtered.value.length)
 const totalPages = computed(() => Math.max(1, Math.ceil(total.value / PAGE_SIZE)))
 const pageNumbers = computed(() => Array.from({ length: totalPages.value }, (_, i) => i + 1))
 const students = computed(() => filtered.value.slice((page.value - 1) * PAGE_SIZE, page.value * PAGE_SIZE))
-
-function registeredTone(registered: boolean) {
-  return registered ? 'success' : 'warning'
-}
-
-function fullName(s: Student) {
-  return `${s.first_name} ${s.last_name ?? ''}`.trim()
-}
 
 // La liste navigue et crée ; éditer et supprimer vivent sur la fiche, au vu de qui est visé.
 const formOpen = ref(false)
@@ -88,7 +80,7 @@ function openDetail(s: Student) {
           <TableCell>{{ s.first_name }}</TableCell>
           <TableCell>{{ formatDate(s.birthday) }}</TableCell>
           <TableCell>
-            <Badge :variant="registeredTone(s.registered)">
+            <Badge :variant="s.registered ? 'success' : 'warning'">
               {{ s.registered ? 'Inscrit' : 'Non inscrit' }}
             </Badge>
           </TableCell>
@@ -98,7 +90,7 @@ function openDetail(s: Student) {
               variant="outline"
               emphasis="compact"
               size="sm"
-              :aria-label="`Infos de ${fullName(s)}`"
+              :aria-label="`Infos de ${studentFullName(s)}`"
               @click="openDetail(s)"
             >
               <IdCardIcon class="size-3.5" aria-hidden="true" />

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, reactive, ref, watch } from 'vue'
+import { Alert } from '@/design-system/ui/alert'
 import { Button } from '@/design-system/ui/button'
 import {
   Dialog,
@@ -13,20 +14,13 @@ import { Field, FieldGroup, FieldLabel } from '@/design-system/ui/field'
 import { Input } from '@/design-system/ui/input'
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from '@/design-system/ui/select'
 import { Toggle } from '@/design-system/ui/toggle'
-import { toApiError } from '@/shared/api/errors'
+import { apiErrorMessage } from '@/shared/api/errors'
 import { useCreateStudentMutation, useUpdateStudentMutation } from './student.queries'
 import { SEX_LABELS, type Student, type StudentFormValues, type Sex } from './student.types'
 
 /** `student` null = création (toujours en L1) ; sinon édition de cet étudiant. */
-const props = defineProps<{
-  open: boolean
-  student: Student | null
-}>()
-
-const emit = defineEmits<{
-  saved: []
-  'update:open': [open: boolean]
-}>()
+const props = defineProps<{ student: Student | null }>()
+const open = defineModel<boolean>('open', { required: true })
 
 const sexOptions = (Object.keys(SEX_LABELS) as Sex[]).map((value) => ({ value, label: SEX_LABELS[value] }))
 
@@ -61,9 +55,9 @@ const editing = computed(() => props.student !== null)
 const title = computed(() => (editing.value ? "Modifier l'étudiant" : 'Nouvel étudiant (L1)'))
 
 watch(
-  () => props.open,
-  (open) => {
-    if (!open) return
+  open,
+  (isOpen) => {
+    if (!isOpen) return
     errorMessage.value = null
     Object.assign(form, props.student ? toFormValues(props.student) : emptyForm)
     registered.value = props.student?.registered ?? true
@@ -88,28 +82,22 @@ async function save() {
       await createMutation.mutateAsync({ ...form })
     }
   } catch (e) {
-    errorMessage.value = toApiError(e).message
+    errorMessage.value = apiErrorMessage(e)
     return
   }
-  emit('saved')
-  emit('update:open', false)
+  open.value = false
 }
 </script>
 
 <template>
-  <Dialog :open="open" @update:open="(v) => emit('update:open', v)">
+  <Dialog v-model:open="open">
     <DialogContent>
       <DialogHeader>
         <DialogTitle>{{ title }}</DialogTitle>
         <DialogDescription class="sr-only">Formulaire étudiant</DialogDescription>
       </DialogHeader>
 
-      <div
-        v-if="errorMessage"
-        class="border-2 border-destructive bg-destructive/10 p-3 text-sm font-semibold text-destructive"
-      >
-        {{ errorMessage }}
-      </div>
+      <Alert v-if="errorMessage" variant="destructive">{{ errorMessage }}</Alert>
 
       <FieldGroup>
         <Field>
@@ -158,7 +146,7 @@ async function save() {
       </FieldGroup>
 
       <DialogFooter>
-        <Button variant="secondary" emphasis="compact" @click="emit('update:open', false)"> Annuler </Button>
+        <Button variant="secondary" emphasis="compact" @click="open = false">Annuler</Button>
         <Button :disabled="saving" @click="save">Enregistrer</Button>
       </DialogFooter>
     </DialogContent>

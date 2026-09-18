@@ -1,19 +1,29 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
-import { ChevronLeftIcon, ChevronRightIcon } from '@lucide/vue'
+import { useRoute, useRouter, type LocationQueryRaw } from 'vue-router'
+import { CheckIcon, ChevronDownIcon, ChevronLeftIcon, ChevronRightIcon } from '@lucide/vue'
 import { Badge } from '@/design-system/ui/badge'
 import { Button } from '@/design-system/ui/button'
+import {
+  Combobox,
+  ComboboxAnchor,
+  ComboboxEmpty,
+  ComboboxInput,
+  ComboboxItem,
+  ComboboxItemIndicator,
+  ComboboxList,
+  ComboboxTrigger,
+  ComboboxViewport,
+} from '@/design-system/ui/combobox'
 import { Empty, EmptyDescription, EmptyTitle } from '@/design-system/ui/empty'
-import { Input } from '@/design-system/ui/input'
 import { Skeleton } from '@/design-system/ui/skeleton'
 import { ToggleGroup, ToggleGroupItem } from '@/design-system/ui/toggle-group'
 import { LEVELS, useContextStore, type Level } from '@/features/academic-year'
-import { useFilteredStudents, type Student } from '@/features/student'
+import { studentFullName, useFilteredStudents, type Student } from '@/features/student'
 import { formatAverage, formatDate, formatScore, isFailingScore } from '@/shared/utils/format'
 import { downloadTranscriptPdf } from './transcript.api'
 import { useTranscriptQuery } from './transcript.queries'
-import { MENTION_LABEL_FR, STATUS_LABEL_FR } from './transcript.types'
+import { MENTION_LABEL_FR, STATUS_LABEL_FR, type AcademicStatusLabel } from './transcript.types'
 
 const route = useRoute()
 const router = useRouter()
@@ -23,45 +33,24 @@ const studentId = computed(() => {
   const raw = route.params.studentId as string | undefined
   return raw ? Number(raw) : null
 })
-const search = ref('')
 
 // Recherche transmise par la liste : précédent/suivant parcourent son tableau entier, pas sa seule page affichée.
 const listSearch = computed(() => (typeof route.query.search === 'string' ? route.query.search : ''))
 const { data: students, filtered: listStudents } = useFilteredStudents(listSearch)
-const suggestions = computed(() => {
-  if (studentId.value) return []
-  const term = search.value.toLowerCase().trim()
-  if (!term) return []
-  return (students.value ?? [])
-    .filter((s) => `${s.first_name} ${s.last_name ?? ''}`.toLowerCase().includes(term))
-    .slice(0, 5)
-})
-
-function selectSuggestion(id: number, label: string) {
-  search.value = label
-  router.push({ name: 'transcript', params: { studentId: String(id) } })
-}
-
-function onSearchChange() {
-  if (studentId.value) router.replace({ name: 'transcript', params: {} })
-}
+const currentStudent = computed(() => students.value?.find((s) => s.id === studentId.value) ?? null)
 
 const position = computed(() => listStudents.value.findIndex((s) => s.id === studentId.value))
 const previousStudent = computed(() => (position.value > 0 ? listStudents.value[position.value - 1] : undefined))
 const nextStudent = computed(() => (position.value >= 0 ? listStudents.value[position.value + 1] : undefined))
 
-function fullName(s: Student) {
-  return `${s.first_name} ${s.last_name ?? ''}`.trim()
-}
-
 function siblingLabel(direction: string, s: Student | undefined) {
-  return s ? `${direction} : ${fullName(s)}` : direction
+  return s ? `${direction} : ${studentFullName(s)}` : direction
 }
 
-function openSibling(s: Student | undefined) {
+/** Un étudiant choisi dans la recherche sort du parcours de la liste : `query` n'est gardée que par précédent/suivant. */
+function openTranscript(s: Student | undefined, query: LocationQueryRaw = {}) {
   if (!s) return
-  search.value = ''
-  router.push({ name: 'transcript', params: { studentId: String(s.id) }, query: route.query })
+  router.push({ name: 'transcript', params: { studentId: s.id }, query })
 }
 
 const levelView = ref<Level | null>(context.level)
@@ -80,7 +69,7 @@ function averageBadgeTone(average: number | null) {
   return average < 10 ? 'destructive' : 'success'
 }
 
-const resultBandClass: Record<string, string> = {
+const resultBandClass: Record<AcademicStatusLabel, string> = {
   PASSED: 'bg-success text-success-foreground',
   CONDITIONAL: 'bg-warning text-warning-foreground',
   FAILED: 'bg-destructive text-destructive-foreground',
@@ -100,25 +89,33 @@ async function exportPdf() {
 </script>
 
 <template>
-  <h1 class="mb-5 font-heading text-2xl font-extrabold">Bulletin</h1>
+  <h1 class="mb-5 font-heading text-2xl font-extrabold">Fiche individuelle de résultats</h1>
 
   <div class="mb-6.5 flex flex-wrap items-center justify-between gap-3">
-    <div class="relative max-w-115 min-w-60 flex-1">
-      <Input v-model="search" placeholder="Rechercher un étudiant par nom…" @input="onSearchChange" />
-      <div
-        v-if="suggestions.length > 0"
-        class="absolute top-[calc(100%+4px)] right-0 left-0 z-10 border-2 border-border bg-card shadow-brutal-md"
-      >
-        <div
-          v-for="s in suggestions"
-          :key="s.id"
-          class="cursor-pointer border-b-2 border-border px-3.5 py-2.5 text-sm font-semibold last:border-b-0 hover:bg-accent hover:text-accent-foreground"
-          @click="selectSuggestion(s.id, `${s.first_name} ${s.last_name}`)"
-        >
-          {{ s.first_name }} {{ s.last_name }} — #{{ s.id }}
-        </div>
-      </div>
-    </div>
+    <Combobox
+      :model-value="currentStudent"
+      by="id"
+      @update:model-value="(s) => openTranscript(s as Student | undefined)"
+    >
+      <ComboboxAnchor as-child>
+        <ComboboxTrigger as-child>
+          <Button variant="outline" emphasis="compact" role="combobox" class="min-w-65 justify-between gap-2 bg-card">
+            {{ currentStudent ? studentFullName(currentStudent) : 'Rechercher un étudiant…' }}
+            <ChevronDownIcon class="size-4 shrink-0 opacity-50" />
+          </Button>
+        </ComboboxTrigger>
+      </ComboboxAnchor>
+      <ComboboxList align="start" class="w-75">
+        <ComboboxInput placeholder="Nom de l'étudiant…" />
+        <ComboboxViewport>
+          <ComboboxEmpty>Aucun étudiant trouvé.</ComboboxEmpty>
+          <ComboboxItem v-for="s in students ?? []" :key="s.id" :value="s">
+            {{ studentFullName(s) }} — #{{ s.id }}
+            <ComboboxItemIndicator><CheckIcon /></ComboboxItemIndicator>
+          </ComboboxItem>
+        </ComboboxViewport>
+      </ComboboxList>
+    </Combobox>
 
     <nav v-if="position >= 0" aria-label="Navigation entre étudiants" class="flex items-center gap-2">
       <Button
@@ -128,10 +125,10 @@ async function exportPdf() {
         :disabled="!previousStudent"
         :aria-label="siblingLabel('Précédent', previousStudent)"
         :title="siblingLabel('Précédent', previousStudent)"
-        @click="openSibling(previousStudent)"
+        @click="openTranscript(previousStudent, route.query)"
       >
         <ChevronLeftIcon aria-hidden="true" />
-        <span class="max-w-40 truncate">{{ previousStudent ? fullName(previousStudent) : 'Précédent' }}</span>
+        <span class="max-w-40 truncate">{{ previousStudent ? studentFullName(previousStudent) : 'Précédent' }}</span>
       </Button>
       <span class="text-xs font-bold text-muted-foreground tabular-nums">
         {{ position + 1 }} / {{ listStudents.length }}
@@ -143,9 +140,9 @@ async function exportPdf() {
         :disabled="!nextStudent"
         :aria-label="siblingLabel('Suivant', nextStudent)"
         :title="siblingLabel('Suivant', nextStudent)"
-        @click="openSibling(nextStudent)"
+        @click="openTranscript(nextStudent, route.query)"
       >
-        <span class="max-w-40 truncate">{{ nextStudent ? fullName(nextStudent) : 'Suivant' }}</span>
+        <span class="max-w-40 truncate">{{ nextStudent ? studentFullName(nextStudent) : 'Suivant' }}</span>
         <ChevronRightIcon aria-hidden="true" />
       </Button>
     </nav>
@@ -153,7 +150,7 @@ async function exportPdf() {
 
   <Empty v-if="!studentId">
     <EmptyTitle>Aucun étudiant sélectionné</EmptyTitle>
-    <EmptyDescription>Recherchez un étudiant ci-dessus pour afficher son bulletin.</EmptyDescription>
+    <EmptyDescription>Choisissez un étudiant ci-dessus pour afficher son bulletin.</EmptyDescription>
   </Empty>
 
   <div v-else-if="isPending" class="border-2 border-border bg-card p-6 shadow-brutal-lg">

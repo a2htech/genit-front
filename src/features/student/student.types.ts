@@ -10,6 +10,15 @@ export const SEX_LABELS: Record<Sex, string> = {
 /** P/C/R/T calculé côté back (AcademicStatusEnum) : Passant/Cumul/Refus/Terminé. */
 export type AcademicStatusCode = 'P' | 'C' | 'R' | 'T'
 
+export const ACADEMIC_STATUS_CODES: AcademicStatusCode[] = ['P', 'C', 'R', 'T']
+
+export const ACADEMIC_STATUS_VARIANTS: Record<AcademicStatusCode, 'success' | 'warning' | 'destructive' | 'accent'> = {
+  P: 'success',
+  C: 'warning',
+  R: 'destructive',
+  T: 'accent',
+}
+
 /** Le même code dit comme une décision annuelle : Résultats, Dashboard, bascule d'année. */
 export const ACADEMIC_STATUS_LABELS: Record<AcademicStatusCode, string> = {
   P: 'Admis(e)',
@@ -59,3 +68,7 @@ export interface StudentFormValues {
 }
 
 export type StudentUpdatePayload = Partial<StudentFormValues> & { registered?: boolean }
+
+export function studentFullName(s: { first_name: string; last_name: string | null }): string {
+  return `${s.first_name} ${s.last_name ?? ''}`.trim()
+}

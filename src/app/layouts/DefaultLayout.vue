@@ -3,16 +3,7 @@ import { computed, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { UserButton } from '@clerk/vue'
 import { ChevronDownIcon, GraduationCapIcon } from '@lucide/vue'
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/design-system/ui/alert-dialog'
+import { ConfirmDialog } from '@/design-system/ui/confirm-dialog'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -46,30 +37,18 @@ const navItems: { name: string; label: string }[] = [
   { name: 'academic-year', label: 'Année' },
 ]
 
+/** Niveau demandé alors que la page a des modifications non enregistrées : attend la confirmation. */
 const pendingLevel = ref<Level | null>(null)
-// AlertDialogAction ferme le dialog (nullifie pendingLevel via @update:open) dans le même
-// clic avant que ce handler ne tourne, donc le niveau visé est capturé à part.
-let pendingLevelValue: Level | null = null
 
-function selectLevel(n: Level) {
-  if (hasUnsavedChanges()) {
-    pendingLevel.value = n
-    pendingLevelValue = n
-    return
-  }
-  context.setLevel(n)
+function selectLevel(level: Level) {
+  if (hasUnsavedChanges()) pendingLevel.value = level
+  else context.setLevel(level)
 }
 
 function confirmLevelChange() {
-  if (pendingLevelValue === null) return
+  if (!pendingLevel.value) return
   discardUnsavedChanges()
-  context.setLevel(pendingLevelValue)
-  pendingLevelValue = null
-  pendingLevel.value = null
-}
-
-function cancelLevelChange() {
-  pendingLevelValue = null
+  context.setLevel(pendingLevel.value)
   pendingLevel.value = null
 }
 </script>
@@ -136,19 +115,14 @@ function cancelLevelChange() {
       <RouterView />
     </main>
 
-    <AlertDialog :open="!!pendingLevel" @update:open="(v) => !v && (pendingLevel = null)">
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>Modifications non enregistrées</AlertDialogTitle>
-          <AlertDialogDescription>
-            Changer de niveau abandonnera les modifications en cours sur cette page.
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel @click="cancelLevelChange">Annuler</AlertDialogCancel>
-          <AlertDialogAction variant="destructive" @click="confirmLevelChange">Changer quand même</AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
+    <ConfirmDialog
+      :open="pendingLevel !== null"
+      title="Modifications non enregistrées"
+      description="Changer de niveau abandonnera les modifications en cours sur cette page."
+      confirm-label="Changer quand même"
+      destructive
+      @update:open="pendingLevel = null"
+      @confirm="confirmLevelChange"
+    />
   </div>
 </template>
