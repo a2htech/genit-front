@@ -10,7 +10,7 @@ import { TableRowsSkeleton } from '@/design-system/ui/skeleton'
 import { Table, TableBody, TableCell, TableEmpty, TableHead, TableHeader, TableRow } from '@/design-system/ui/table'
 import { useContextStore } from '@/features/academic-year'
 import { formatDate } from '@/shared/utils/format'
-import { useStudentsQuery } from './student.queries'
+import { useFilteredStudents } from './student.queries'
 import StudentFormModal from './StudentFormModal.vue'
 import type { Student } from './student.types'
 
@@ -22,14 +22,7 @@ const search = ref('')
 const page = ref(1)
 watch(search, () => (page.value = 1))
 
-const { data, isPending } = useStudentsQuery()
-
-const filtered = computed(() => {
-  const term = search.value.toLowerCase().trim()
-  const list = data.value ?? []
-  if (!term) return list
-  return list.filter((s) => `${s.first_name} ${s.last_name ?? ''} ${s.id}`.toLowerCase().includes(term))
-})
+const { data, isPending, filtered } = useFilteredStudents(search)
 const total = computed(() => filtered.value.length)
 const totalPages = computed(() => Math.max(1, Math.ceil(total.value / PAGE_SIZE)))
 const pageNumbers = computed(() => Array.from({ length: totalPages.value }, (_, i) => i + 1))
@@ -46,8 +39,10 @@ function fullName(s: Student) {
 // La liste navigue et crée ; éditer et supprimer vivent sur la fiche, au vu de qui est visé.
 const formOpen = ref(false)
 
+// Le bulletin reprend la recherche pour parcourir les étudiants dans l'ordre de ce tableau.
 function openTranscript(s: Student) {
-  router.push({ name: 'transcript', params: { studentId: String(s.id) } })
+  const term = search.value.trim()
+  router.push({ name: 'transcript', params: { studentId: String(s.id) }, query: term ? { search: term } : {} })
 }
 
 function openDetail(s: Student) {

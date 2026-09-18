@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { ChevronLeftIcon, ChevronRightIcon } from '@lucide/vue'
 import { Badge } from '@/design-system/ui/badge'
 import { Button } from '@/design-system/ui/button'
 import { Empty, EmptyDescription, EmptyTitle } from '@/design-system/ui/empty'
@@ -8,7 +9,7 @@ import { Input } from '@/design-system/ui/input'
 import { Skeleton } from '@/design-system/ui/skeleton'
 import { ToggleGroup, ToggleGroupItem } from '@/design-system/ui/toggle-group'
 import { LEVELS, useContextStore, type Level } from '@/features/academic-year'
-import { useStudentsQuery } from '@/features/student'
+import { useFilteredStudents, type Student } from '@/features/student'
 import { formatAverage, formatDate, formatScore, isFailingScore } from '@/shared/utils/format'
 import { downloadTranscriptPdf } from './transcript.api'
 import { useTranscriptQuery } from './transcript.queries'
@@ -24,7 +25,9 @@ const studentId = computed(() => {
 })
 const search = ref('')
 
-const { data: students } = useStudentsQuery()
+// Recherche transmise par la liste : précédent/suivant parcourent son tableau entier, pas sa seule page affichée.
+const listSearch = computed(() => (typeof route.query.search === 'string' ? route.query.search : ''))
+const { data: students, filtered: listStudents } = useFilteredStudents(listSearch)
 const suggestions = computed(() => {
   if (studentId.value) return []
   const term = search.value.toLowerCase().trim()
@@ -41,6 +44,24 @@ function selectSuggestion(id: number, label: string) {
 
 function onSearchChange() {
   if (studentId.value) router.replace({ name: 'transcript', params: {} })
+}
+
+const position = computed(() => listStudents.value.findIndex((s) => s.id === studentId.value))
+const previousStudent = computed(() => (position.value > 0 ? listStudents.value[position.value - 1] : undefined))
+const nextStudent = computed(() => (position.value >= 0 ? listStudents.value[position.value + 1] : undefined))
+
+function fullName(s: Student) {
+  return `${s.first_name} ${s.last_name ?? ''}`.trim()
+}
+
+function siblingLabel(direction: string, s: Student | undefined) {
+  return s ? `${direction} : ${fullName(s)}` : direction
+}
+
+function openSibling(s: Student | undefined) {
+  if (!s) return
+  search.value = ''
+  router.push({ name: 'transcript', params: { studentId: String(s.id) }, query: route.query })
 }
 
 const levelView = ref<Level | null>(context.level)
@@ -81,21 +102,53 @@ async function exportPdf() {
 <template>
   <h1 class="mb-5 font-heading text-2xl font-extrabold">Bulletin</h1>
 
-  <div class="relative mb-6.5 max-w-115">
-    <Input v-model="search" placeholder="Rechercher un étudiant par nom…" @input="onSearchChange" />
-    <div
-      v-if="suggestions.length > 0"
-      class="absolute top-[calc(100%+4px)] right-0 left-0 z-10 border-2 border-border bg-card shadow-brutal-md"
-    >
+  <div class="mb-6.5 flex flex-wrap items-center justify-between gap-3">
+    <div class="relative max-w-115 min-w-60 flex-1">
+      <Input v-model="search" placeholder="Rechercher un étudiant par nom…" @input="onSearchChange" />
       <div
-        v-for="s in suggestions"
-        :key="s.id"
-        class="cursor-pointer border-b-2 border-border px-3.5 py-2.5 text-sm font-semibold last:border-b-0 hover:bg-accent hover:text-accent-foreground"
-        @click="selectSuggestion(s.id, `${s.first_name} ${s.last_name}`)"
+        v-if="suggestions.length > 0"
+        class="absolute top-[calc(100%+4px)] right-0 left-0 z-10 border-2 border-border bg-card shadow-brutal-md"
       >
-        {{ s.first_name }} {{ s.last_name }} — #{{ s.id }}
+        <div
+          v-for="s in suggestions"
+          :key="s.id"
+          class="cursor-pointer border-b-2 border-border px-3.5 py-2.5 text-sm font-semibold last:border-b-0 hover:bg-accent hover:text-accent-foreground"
+          @click="selectSuggestion(s.id, `${s.first_name} ${s.last_name}`)"
+        >
+          {{ s.first_name }} {{ s.last_name }} — #{{ s.id }}
+        </div>
       </div>
     </div>
+
+    <nav v-if="position >= 0" aria-label="Navigation entre étudiants" class="flex items-center gap-2">
+      <Button
+        variant="outline"
+        emphasis="compact"
+        size="sm"
+        :disabled="!previousStudent"
+        :aria-label="siblingLabel('Précédent', previousStudent)"
+        :title="siblingLabel('Précédent', previousStudent)"
+        @click="openSibling(previousStudent)"
+      >
+        <ChevronLeftIcon aria-hidden="true" />
+        <span class="max-w-40 truncate">{{ previousStudent ? fullName(previousStudent) : 'Précédent' }}</span>
+      </Button>
+      <span class="text-xs font-bold text-muted-foreground tabular-nums">
+        {{ position + 1 }} / {{ listStudents.length }}
+      </span>
+      <Button
+        variant="outline"
+        emphasis="compact"
+        size="sm"
+        :disabled="!nextStudent"
+        :aria-label="siblingLabel('Suivant', nextStudent)"
+        :title="siblingLabel('Suivant', nextStudent)"
+        @click="openSibling(nextStudent)"
+      >
+        <span class="max-w-40 truncate">{{ nextStudent ? fullName(nextStudent) : 'Suivant' }}</span>
+        <ChevronRightIcon aria-hidden="true" />
+      </Button>
+    </nav>
   </div>
 
   <Empty v-if="!studentId">
