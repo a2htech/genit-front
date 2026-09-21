@@ -18,13 +18,14 @@ async function logout() {
   <div class="mx-auto flex min-h-screen max-w-md items-center px-6">
     <Empty class="w-full shadow-brutal-lg">
       <EmptyHeader>
-        <EmptyMedia variant="icon" class="size-14 bg-destructive/10 text-destructive [&_svg:not([class*=size-])]:size-7">
+        <EmptyMedia
+          variant="icon"
+          class="size-14 bg-destructive/10 text-destructive [&_svg:not([class*=size-])]:size-7"
+        >
           <ShieldOffIcon />
         </EmptyMedia>
         <EmptyTitle>Accès refusé</EmptyTitle>
-        <EmptyDescription>
-          Vous n'avez pas les droits nécessaires pour accéder à cette ressource.
-        </EmptyDescription>
+        <EmptyDescription> Vous n'avez pas les droits nécessaires pour accéder à cette ressource. </EmptyDescription>
       </EmptyHeader>
       <EmptyContent>
         <div class="flex gap-2.5">

@@ -8,11 +8,13 @@ import { cn } from '@/shared/lib/utils'
 import { buttonVariants } from '@/design-system/ui/button'
 
 const props = withDefaults(
-  defineProps<AlertDialogActionProps & {
-    class?: HTMLAttributes['class']
-    variant?: ButtonVariants['variant']
-    size?: ButtonVariants['size']
-  }>(),
+  defineProps<
+    AlertDialogActionProps & {
+      class?: HTMLAttributes['class']
+      variant?: ButtonVariants['variant']
+      size?: ButtonVariants['size']
+    }
+  >(),
   {
     variant: 'default',
     size: 'default',

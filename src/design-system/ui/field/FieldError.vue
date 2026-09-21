@@ -9,17 +9,14 @@ const props = defineProps<{
 }>()
 
 const content = computed(() => {
-  if (!props.errors || props.errors.length === 0)
-    return null
+  if (!props.errors || props.errors.length === 0) return null
 
   const uniqueErrors = [
     ...new Map(
-      props.errors
-        .filter(Boolean)
-        .map((error) => {
-          const message = typeof error === 'string' ? error : error?.message
-          return [message, error]
-        }),
+      props.errors.filter(Boolean).map((error) => {
+        const message = typeof error === 'string' ? error : error?.message
+        return [message, error]
+      }),
     ).values(),
   ]
 
@@ -27,7 +24,7 @@ const content = computed(() => {
     return typeof uniqueErrors[0] === 'string' ? uniqueErrors[0] : uniqueErrors[0].message
   }
 
-  return uniqueErrors.map(error => typeof error === 'string' ? error : error?.message)
+  return uniqueErrors.map((error) => (typeof error === 'string' ? error : error?.message))
 })
 </script>
 
@@ -36,7 +33,7 @@ const content = computed(() => {
     v-if="$slots.default || content"
     role="alert"
     data-slot="field-error"
-    :class="cn('text-destructive text-sm font-normal', props.class)"
+    :class="cn('text-sm font-normal text-destructive', props.class)"
   >
     <slot v-if="$slots.default" />
 

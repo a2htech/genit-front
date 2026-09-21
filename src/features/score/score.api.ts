@@ -18,7 +18,7 @@ export interface StoreScoresPayload {
   subjectId: number
   session: ExamSession
   classYear: number
-  scores: { student_id: number; score: number }[]
+  scores: { student_id: number; score: number | null }[]
 }
 
 export async function storeScoresForSubject(payload: StoreScoresPayload): Promise<Score[]> {
@@ -34,4 +34,8 @@ export async function storeScoresForSubject(payload: StoreScoresPayload): Promis
 export async function updateScore(id: number, score: number | null): Promise<Score> {
   const { data } = await apiClient.put<{ data: Score }>(`/scores/${id}`, { score })
   return data.data
+}
+
+export async function deleteScore(id: number): Promise<void> {
+  await apiClient.delete(`/scores/${id}`)
 }

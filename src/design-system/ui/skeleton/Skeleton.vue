@@ -10,8 +10,5 @@ const props = defineProps<SkeletonProps>()
 </script>
 
 <template>
-  <div
-    data-slot="skeleton"
-    :class="cn('skeleton-stripes border-2 border-border bg-muted', props.class)"
-  />
+  <div data-slot="skeleton" :class="cn('skeleton-stripes border-2 border-border bg-muted', props.class)" />
 </template>

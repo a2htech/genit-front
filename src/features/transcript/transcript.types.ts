@@ -4,6 +4,8 @@ import type { AcademicStatusCode } from '@/features/student'
 /** AcademicStatusEnum::label() côté back (P/C/R/T résolus en toutes lettres). */
 export type AcademicStatusLabel = 'PASSED' | 'CONDITIONAL' | 'FAILED' | 'COMPLETED'
 
+/** Recopie AcademicStatusEnum::frenchLabel(), qui sert à l'export PDF : le bulletin à l'écran
+ *  doit dire mot pour mot ce que son PDF imprime. */
 export const STATUS_LABEL_FR: Record<AcademicStatusLabel, string> = {
   PASSED: 'Admis(e)',
   CONDITIONAL: 'Sous réserve',
@@ -89,6 +91,14 @@ export interface AnnualResult {
   /** La dette de l'année précédente n'a pas été rattrapée à temps (cumul expiré). */
   expired: boolean
   failed_subjects: FailedSubject[]
+}
+
+/** AcademicStatusEnum::allowsCumul()/isTerminal() côté back : pas de cumul en L3/M2, seul M2 est terminal. */
+export function isDecisionApplicable(status: AcademicStatusCode, level: Level): boolean {
+  if (status === 'P') return level !== 'M2'
+  if (status === 'C') return level !== 'L3' && level !== 'M2'
+  if (status === 'T') return level === 'M2'
+  return true
 }
 
 /** Nombre de décisions par statut (P/C/R/T), pour une classe, sur l'année courante. */

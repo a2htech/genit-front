@@ -2,6 +2,7 @@
 import { computed, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { CircleXIcon } from '@lucide/vue'
+import { Alert } from '@/design-system/ui/alert'
 import { Badge } from '@/design-system/ui/badge'
 import { Button } from '@/design-system/ui/button'
 import { Card } from '@/design-system/ui/card'
@@ -10,9 +11,17 @@ import { Skeleton, StatCardSkeleton, TableRowsSkeleton } from '@/design-system/u
 import { Table, TableBody, TableCell, TableEmpty, TableHead, TableHeader, TableRow } from '@/design-system/ui/table'
 import { ToggleGroup, ToggleGroupItem } from '@/design-system/ui/toggle-group'
 import { useContextStore } from '@/features/academic-year'
-import { ACADEMIC_STATUS_LABELS, useStudentsQuery, type AcademicStatusCode } from '@/features/student'
-import { toApiError } from '@/shared/api/errors'
+import {
+  ACADEMIC_STATUS_CODES,
+  ACADEMIC_STATUS_LABELS,
+  ACADEMIC_STATUS_VARIANTS,
+  studentFullName,
+  useStudentsQuery,
+  type AcademicStatusCode,
+} from '@/features/student'
+import { apiErrorMessage } from '@/shared/api/errors'
 import { useAnnualResultsQuery, useCalculateAnnualResultsForClassMutation } from './transcript.queries'
+import { isDecisionApplicable } from './transcript.types'
 
 const router = useRouter()
 const context = useContextStore()
@@ -29,61 +38,32 @@ async function recalculate() {
   try {
     await calculateMutation.mutateAsync()
   } catch (e) {
-    errorMessage.value = toApiError(e).message
+    errorMessage.value = apiErrorMessage(e)
   }
 }
 
 const studentsById = computed(() => new Map((students.value ?? []).map((s) => [s.id, s])))
 
-const statusTone: Record<AcademicStatusCode, 'success' | 'warning' | 'destructive' | 'accent'> = {
-  P: 'success',
-  C: 'warning',
-  R: 'destructive',
-  T: 'accent',
-}
+/** Seules les décisions possibles à ce niveau ont une carte et un filtre. */
+const statCards = computed(() =>
+  ACADEMIC_STATUS_CODES.filter((status) => isDecisionApplicable(status, context.level!)).map((status) => ({
+    status,
+    count: (annualResults.value ?? []).filter((r) => r.status === status).length,
+  })),
+)
+const statsGridClass = computed(() => (statCards.value.length >= 3 ? 'sm:grid-cols-3' : 'sm:grid-cols-2'))
 
 const filter = ref<AcademicStatusCode | 'all'>('all')
+watch(statCards, (cards) => {
+  if (filter.value !== 'all' && !cards.some((c) => c.status === filter.value)) filter.value = 'all'
+})
 
 const rows = computed(() => {
   const list = annualResults.value ?? []
-  return (filter.value === 'all' ? list : list.filter((r) => r.status === filter.value)).map((r) => ({
-    result: r,
-    student: studentsById.value.get(r.student_id) ?? null,
-    excluded: r.expired,
+  return (filter.value === 'all' ? list : list.filter((r) => r.status === filter.value)).map((result) => ({
+    result,
+    student: studentsById.value.get(result.student_id) ?? null,
   }))
-})
-
-const stats = computed(() => {
-  const list = annualResults.value ?? []
-  return {
-    P: list.filter((r) => r.status === 'P').length,
-    C: list.filter((r) => r.status === 'C').length,
-    R: list.filter((r) => r.status === 'R').length,
-    T: list.filter((r) => r.status === 'T').length,
-  }
-})
-
-/**
- * Which decisions are even possible at this level (AcademicStatusEnum::allowsCumul()/isTerminal()
- * côté back) : L3/M2 n'ont pas de cumul (sous réserve), et seul M2 est terminal (diplôme, pas passage).
- */
-const visibleStatCards = computed(() => {
-  const level = context.level
-  const cards: { key: AcademicStatusCode; count: number }[] = []
-  if (level !== 'M2') cards.push({ key: 'P', count: stats.value.P })
-  if (level !== 'L3' && level !== 'M2') cards.push({ key: 'C', count: stats.value.C })
-  cards.push({ key: 'R', count: stats.value.R })
-  if (level === 'M2') cards.push({ key: 'T', count: stats.value.T })
-  return cards
-})
-const statsGridClass = computed(() => (visibleStatCards.value.length >= 3 ? 'sm:grid-cols-3' : 'sm:grid-cols-2'))
-
-const filterDefs = computed(() => [
-  { key: 'all' as const, label: 'Tous' },
-  ...visibleStatCards.value.map((c) => ({ key: c.key, label: ACADEMIC_STATUS_LABELS[c.key] })),
-])
-watch(visibleStatCards, (cards) => {
-  if (filter.value !== 'all' && !cards.some((c) => c.key === filter.value)) filter.value = 'all'
 })
 
 function openTranscript(studentId: number) {
@@ -100,16 +80,14 @@ function openTranscript(studentId: number) {
       </Button>
     </div>
 
-    <div v-if="errorMessage" class="mb-4 border-2 border-destructive bg-destructive/10 p-3 text-sm font-semibold text-destructive">
-      {{ errorMessage }}
-    </div>
+    <Alert v-if="errorMessage" variant="destructive" class="mb-4">{{ errorMessage }}</Alert>
 
     <template v-if="isPending">
       <div class="mb-5.5 grid grid-cols-2 gap-4" :class="statsGridClass">
         <StatCardSkeleton
-          v-for="card in visibleStatCards"
-          :key="card.key"
-          :label="ACADEMIC_STATUS_LABELS[card.key]"
+          v-for="card in statCards"
+          :key="card.status"
+          :label="ACADEMIC_STATUS_LABELS[card.status]"
           class="px-4 py-3"
           value-class="h-8 w-14"
         />
@@ -134,22 +112,24 @@ function openTranscript(studentId: number) {
       <Empty v-if="(annualResults ?? []).length === 0">
         <EmptyTitle>Aucun résultat calculé</EmptyTitle>
         <EmptyDescription>
-          Cliquez sur « Recalculer les résultats » pour générer les décisions annuelles de cette
-          classe.
+          Cliquez sur « Recalculer les résultats » pour générer les décisions annuelles de cette classe.
         </EmptyDescription>
       </Empty>
 
       <template v-else>
         <div class="mb-5.5 grid grid-cols-2 gap-4" :class="statsGridClass">
-          <Card v-for="card in visibleStatCards" :key="card.key" class="px-4 py-3">
-            <div class="text-xs font-extrabold text-muted-foreground uppercase">{{ ACADEMIC_STATUS_LABELS[card.key] }}</div>
+          <Card v-for="card in statCards" :key="card.status" class="px-4 py-3">
+            <div class="text-xs font-extrabold text-muted-foreground uppercase">
+              {{ ACADEMIC_STATUS_LABELS[card.status] }}
+            </div>
             <div class="font-heading text-3xl font-extrabold">{{ card.count }}</div>
           </Card>
         </div>
 
         <ToggleGroup v-model="filter" type="single" variant="outline" class="mb-4">
-          <ToggleGroupItem v-for="f in filterDefs" :key="f.key" :value="f.key" size="sm">
-            {{ f.label }}
+          <ToggleGroupItem value="all" size="sm">Tous</ToggleGroupItem>
+          <ToggleGroupItem v-for="card in statCards" :key="card.status" :value="card.status" size="sm">
+            {{ ACADEMIC_STATUS_LABELS[card.status] }}
           </ToggleGroupItem>
         </ToggleGroup>
 
@@ -164,9 +144,7 @@ function openTranscript(studentId: number) {
           </TableHeader>
           <TableBody>
             <TableEmpty v-if="rows.length === 0" :colspan="4">
-              <div class="text-center text-sm font-semibold text-muted-foreground">
-                Aucun étudiant dans ce filtre.
-              </div>
+              <div class="text-center text-sm font-semibold text-muted-foreground">Aucun étudiant dans ce filtre.</div>
             </TableEmpty>
             <TableRow
               v-for="row in rows"
@@ -176,15 +154,19 @@ function openTranscript(studentId: number) {
             >
               <TableCell class="font-bold">{{ row.result.student_id }}</TableCell>
               <TableCell>
-                {{ row.student ? `${row.student.first_name} ${row.student.last_name ?? ''}` : `Étudiant #${row.result.student_id}` }}
+                {{ row.student ? studentFullName(row.student) : `Étudiant #${row.result.student_id}` }}
               </TableCell>
               <TableCell>
                 <Badge
-                  :variant="statusTone[row.result.status]"
-                  :title="row.excluded ? 'Dette non rattrapée dans le délai imparti : ne peut plus se réinscrire à ce niveau.' : undefined"
+                  :variant="ACADEMIC_STATUS_VARIANTS[row.result.status]"
+                  :title="
+                    row.result.expired
+                      ? 'Dette non rattrapée dans le délai imparti : ne peut plus se réinscrire à ce niveau.'
+                      : undefined
+                  "
                 >
-                  <CircleXIcon v-if="row.excluded" aria-hidden="true" class="size-3" />
-                  {{ row.excluded ? 'Exclu(e)' : ACADEMIC_STATUS_LABELS[row.result.status] }}
+                  <CircleXIcon v-if="row.result.expired" aria-hidden="true" class="size-3" />
+                  {{ row.result.expired ? 'Exclu(e)' : ACADEMIC_STATUS_LABELS[row.result.status] }}
                 </Badge>
               </TableCell>
               <TableCell>

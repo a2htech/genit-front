@@ -25,7 +25,12 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits)
     <ComboboxContent
       data-slot="combobox-content"
       v-bind="{ ...$attrs, ...forwarded }"
-      :class="cn('bg-popover text-popover-foreground data-open:animate-in data-closed:animate-out data-closed:fade-out-0 data-open:fade-in-0 data-closed:zoom-out-95 data-open:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 border-2 border-border shadow-brutal-md max-h-72 min-w-36 overflow-hidden duration-100 data-[side=inline-start]:slide-in-from-right-2 data-[side=inline-end]:slide-in-from-left-2 group/combobox-content z-50 w-(--reka-combobox-trigger-width)', props.class)"
+      :class="
+        cn(
+          'group/combobox-content z-50 max-h-72 w-(--reka-combobox-trigger-width) min-w-36 overflow-hidden border-2 border-border bg-popover text-popover-foreground shadow-brutal-md duration-100 data-[side=bottom]:slide-in-from-top-2 data-[side=inline-end]:slide-in-from-left-2 data-[side=inline-start]:slide-in-from-right-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95',
+          props.class,
+        )
+      "
     >
       <slot />
     </ComboboxContent>

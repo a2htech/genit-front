@@ -1,18 +1,29 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { useRoute, useRouter, type LocationQueryRaw } from 'vue-router'
+import { CheckIcon, ChevronDownIcon, ChevronLeftIcon, ChevronRightIcon } from '@lucide/vue'
 import { Badge } from '@/design-system/ui/badge'
 import { Button } from '@/design-system/ui/button'
+import {
+  Combobox,
+  ComboboxAnchor,
+  ComboboxEmpty,
+  ComboboxInput,
+  ComboboxItem,
+  ComboboxItemIndicator,
+  ComboboxList,
+  ComboboxTrigger,
+  ComboboxViewport,
+} from '@/design-system/ui/combobox'
 import { Empty, EmptyDescription, EmptyTitle } from '@/design-system/ui/empty'
-import { Input } from '@/design-system/ui/input'
 import { Skeleton } from '@/design-system/ui/skeleton'
 import { ToggleGroup, ToggleGroupItem } from '@/design-system/ui/toggle-group'
 import { LEVELS, useContextStore, type Level } from '@/features/academic-year'
-import { useStudentsQuery } from '@/features/student'
+import { studentFullName, useFilteredStudents, type Student } from '@/features/student'
 import { formatAverage, formatDate, formatScore, isFailingScore } from '@/shared/utils/format'
 import { downloadTranscriptPdf } from './transcript.api'
 import { useTranscriptQuery } from './transcript.queries'
-import { MENTION_LABEL_FR, STATUS_LABEL_FR } from './transcript.types'
+import { MENTION_LABEL_FR, STATUS_LABEL_FR, type AcademicStatusLabel } from './transcript.types'
 
 const route = useRoute()
 const router = useRouter()
@@ -22,25 +33,24 @@ const studentId = computed(() => {
   const raw = route.params.studentId as string | undefined
   return raw ? Number(raw) : null
 })
-const search = ref('')
 
-const { data: students } = useStudentsQuery()
-const suggestions = computed(() => {
-  if (studentId.value) return []
-  const term = search.value.toLowerCase().trim()
-  if (!term) return []
-  return (students.value ?? [])
-    .filter((s) => `${s.first_name} ${s.last_name ?? ''}`.toLowerCase().includes(term))
-    .slice(0, 5)
-})
+// Recherche transmise par la liste : précédent/suivant parcourent son tableau entier, pas sa seule page affichée.
+const listSearch = computed(() => (typeof route.query.search === 'string' ? route.query.search : ''))
+const { data: students, filtered: listStudents } = useFilteredStudents(listSearch)
+const currentStudent = computed(() => students.value?.find((s) => s.id === studentId.value) ?? null)
 
-function selectSuggestion(id: number, label: string) {
-  search.value = label
-  router.push({ name: 'transcript', params: { studentId: String(id) } })
+const position = computed(() => listStudents.value.findIndex((s) => s.id === studentId.value))
+const previousStudent = computed(() => (position.value > 0 ? listStudents.value[position.value - 1] : undefined))
+const nextStudent = computed(() => (position.value >= 0 ? listStudents.value[position.value + 1] : undefined))
+
+function siblingLabel(direction: string, s: Student | undefined) {
+  return s ? `${direction} : ${studentFullName(s)}` : direction
 }
 
-function onSearchChange() {
-  if (studentId.value) router.replace({ name: 'transcript', params: {} })
+/** Un étudiant choisi dans la recherche sort du parcours de la liste : `query` n'est gardée que par précédent/suivant. */
+function openTranscript(s: Student | undefined, query: LocationQueryRaw = {}) {
+  if (!s) return
+  router.push({ name: 'transcript', params: { studentId: s.id }, query })
 }
 
 const levelView = ref<Level | null>(context.level)
@@ -59,7 +69,7 @@ function averageBadgeTone(average: number | null) {
   return average < 10 ? 'destructive' : 'success'
 }
 
-const resultBandClass: Record<string, string> = {
+const resultBandClass: Record<AcademicStatusLabel, string> = {
   PASSED: 'bg-success text-success-foreground',
   CONDITIONAL: 'bg-warning text-warning-foreground',
   FAILED: 'bg-destructive text-destructive-foreground',
@@ -79,28 +89,68 @@ async function exportPdf() {
 </script>
 
 <template>
-  <h1 class="font-heading mb-5 text-2xl font-extrabold">Bulletin</h1>
+  <h1 class="mb-5 font-heading text-2xl font-extrabold">Fiche individuelle de résultats</h1>
 
-  <div class="relative mb-6.5 max-w-115">
-    <Input v-model="search" placeholder="Rechercher un étudiant par nom…" @input="onSearchChange" />
-    <div
-      v-if="suggestions.length > 0"
-      class="absolute top-[calc(100%+4px)] right-0 left-0 z-10 border-2 border-border bg-card shadow-brutal-md"
+  <div class="mb-6.5 flex flex-wrap items-center justify-between gap-3">
+    <Combobox
+      :model-value="currentStudent"
+      by="id"
+      @update:model-value="(s) => openTranscript(s as Student | undefined)"
     >
-      <div
-        v-for="s in suggestions"
-        :key="s.id"
-        class="cursor-pointer border-b-2 border-border px-3.5 py-2.5 text-sm font-semibold last:border-b-0 hover:bg-accent hover:text-accent-foreground"
-        @click="selectSuggestion(s.id, `${s.first_name} ${s.last_name}`)"
+      <ComboboxAnchor as-child>
+        <ComboboxTrigger as-child>
+          <Button variant="outline" emphasis="compact" role="combobox" class="min-w-65 justify-between gap-2 bg-card">
+            {{ currentStudent ? studentFullName(currentStudent) : 'Rechercher un étudiant…' }}
+            <ChevronDownIcon class="size-4 shrink-0 opacity-50" />
+          </Button>
+        </ComboboxTrigger>
+      </ComboboxAnchor>
+      <ComboboxList align="start" class="w-75">
+        <ComboboxInput placeholder="Nom de l'étudiant…" />
+        <ComboboxViewport>
+          <ComboboxEmpty>Aucun étudiant trouvé.</ComboboxEmpty>
+          <ComboboxItem v-for="s in students ?? []" :key="s.id" :value="s">
+            {{ studentFullName(s) }} — #{{ s.id }}
+            <ComboboxItemIndicator><CheckIcon /></ComboboxItemIndicator>
+          </ComboboxItem>
+        </ComboboxViewport>
+      </ComboboxList>
+    </Combobox>
+
+    <nav v-if="position >= 0" aria-label="Navigation entre étudiants" class="flex items-center gap-2">
+      <Button
+        variant="outline"
+        emphasis="compact"
+        size="sm"
+        :disabled="!previousStudent"
+        :aria-label="siblingLabel('Précédent', previousStudent)"
+        :title="siblingLabel('Précédent', previousStudent)"
+        @click="openTranscript(previousStudent, route.query)"
       >
-        {{ s.first_name }} {{ s.last_name }} — #{{ s.id }}
-      </div>
-    </div>
+        <ChevronLeftIcon aria-hidden="true" />
+        <span class="max-w-40 truncate">{{ previousStudent ? studentFullName(previousStudent) : 'Précédent' }}</span>
+      </Button>
+      <span class="text-xs font-bold text-muted-foreground tabular-nums">
+        {{ position + 1 }} / {{ listStudents.length }}
+      </span>
+      <Button
+        variant="outline"
+        emphasis="compact"
+        size="sm"
+        :disabled="!nextStudent"
+        :aria-label="siblingLabel('Suivant', nextStudent)"
+        :title="siblingLabel('Suivant', nextStudent)"
+        @click="openTranscript(nextStudent, route.query)"
+      >
+        <span class="max-w-40 truncate">{{ nextStudent ? studentFullName(nextStudent) : 'Suivant' }}</span>
+        <ChevronRightIcon aria-hidden="true" />
+      </Button>
+    </nav>
   </div>
 
   <Empty v-if="!studentId">
     <EmptyTitle>Aucun étudiant sélectionné</EmptyTitle>
-    <EmptyDescription>Recherchez un étudiant ci-dessus pour afficher son bulletin.</EmptyDescription>
+    <EmptyDescription>Choisissez un étudiant ci-dessus pour afficher son bulletin.</EmptyDescription>
   </Empty>
 
   <div v-else-if="isPending" class="border-2 border-border bg-card p-6 shadow-brutal-lg">
@@ -130,13 +180,15 @@ async function exportPdf() {
       <div class="text-[11px] font-bold tracking-wide text-muted-foreground uppercase">
         Université — Mention Informatique
       </div>
-      <div class="font-heading mt-1 text-base font-extrabold">
+      <div class="mt-1 font-heading text-base font-extrabold">
         Fiche individuelle de résultats — {{ transcript.student.class }}
       </div>
     </div>
 
     <div class="flex flex-wrap items-center gap-5 border-b-2 border-border p-6">
-      <div class="font-heading flex size-18 shrink-0 items-center justify-center border-2 border-border bg-muted text-2xl font-extrabold">
+      <div
+        class="flex size-18 shrink-0 items-center justify-center border-2 border-border bg-muted font-heading text-2xl font-extrabold"
+      >
         {{ transcript.student.firstName[0] }}{{ transcript.student.lastName?.[0] ?? '' }}
       </div>
       <div>
@@ -161,11 +213,11 @@ async function exportPdf() {
     </div>
 
     <div v-for="sem in transcript.semesters" :key="sem.number" class="border-b-2 border-border p-6">
-      <div class="font-heading mb-3.5 text-base font-extrabold">Semestre {{ sem.number }}</div>
+      <div class="mb-3.5 font-heading text-base font-extrabold">Semestre {{ sem.number }}</div>
 
       <div v-for="ue in sem.teachingUnits" :key="ue.code" class="mb-3.5 border-2 border-border">
         <div class="flex flex-wrap items-center gap-2.5 border-b-2 border-border bg-muted px-3.5 py-2.5">
-          <div class="font-heading min-w-45 flex-1 text-[13px] font-extrabold">{{ ue.code }} — {{ ue.name }}</div>
+          <div class="min-w-45 flex-1 font-heading text-[13px] font-extrabold">{{ ue.code }} — {{ ue.name }}</div>
           <span class="text-[11px] font-bold text-muted-foreground">{{ ue.credits }} crédits</span>
           <Badge :variant="averageBadgeTone(ue.regularSession.unitAverage)">
             N: {{ formatAverage(ue.regularSession.unitAverage) }} · {{ MENTION_LABEL_FR[ue.regularSession.mention] }} ·
@@ -211,7 +263,7 @@ async function exportPdf() {
     </div>
 
     <div
-      class="font-heading border-b-2 border-border p-5 text-center text-[26px] font-extrabold tracking-wide"
+      class="border-b-2 border-border p-5 text-center font-heading text-[26px] font-extrabold tracking-wide"
       :class="resultBandClass[transcript.annualResult]"
     >
       {{ STATUS_LABEL_FR[transcript.annualResult] }}

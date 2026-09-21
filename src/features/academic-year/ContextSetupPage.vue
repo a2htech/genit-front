@@ -21,11 +21,11 @@ function selectLevel(value: unknown) {
 <template>
   <div class="mx-auto max-w-230 px-6 py-12">
     <div class="mb-9 text-center">
-      <h1 class="font-heading mb-2 text-3xl font-extrabold">Bienvenue</h1>
+      <h1 class="mb-2 font-heading text-3xl font-extrabold">Bienvenue</h1>
       <Skeleton v-if="isPending" class="mx-auto h-4 w-90" />
       <p v-else class="text-sm font-medium text-muted-foreground">
-        Choisissez votre niveau pour l'année universitaire {{ currentYear?.year }}. Ce contexte
-        sera actif pour toute votre session.
+        Choisissez votre niveau pour l'année universitaire {{ currentYear?.year }}. Ce contexte sera actif pour toute
+        votre session.
       </p>
     </div>
 

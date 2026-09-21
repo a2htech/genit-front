@@ -18,13 +18,6 @@ export function useTeachingUnitsQuery() {
   })
 }
 
-/** Les matières viennent nested dans TeachingUnitResource : pas de fetch /subjects séparé. */
-export function useSubjectsQuery() {
-  const { data: teachingUnits, isPending } = useTeachingUnitsQuery()
-  const data = computed(() => teachingUnits.value?.flatMap((u) => u.subjects))
-  return { data, isPending }
-}
-
 function useInvalidateTeachingUnits() {
   const context = useContextStore()
   const queryClient = useQueryClient()

@@ -1,6 +1,7 @@
 import { type Ref, computed } from 'vue'
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import {
+  deleteScore,
   fetchEligibleStudents,
   fetchRetakeEligibleStudents,
   storeScoresForSubject,
@@ -20,27 +21,37 @@ export function useEligibleStudentsQuery(subjectId: Ref<number | null>) {
   })
 }
 
-export function useRetakeEligibleStudentsQuery(subjectId: Ref<number | null>, name: Ref<string>, enabled: Ref<boolean>) {
+export function useRetakeEligibleStudentsQuery(subjectId: Ref<number | null>, name: Ref<string>) {
   return useQuery({
     queryKey: computed(() => ['subjects', subjectId.value, 'retake-eligible-students', name.value] as const),
     queryFn: () => fetchRetakeEligibleStudents(subjectId.value!, name.value),
-    enabled: computed(() => enabled.value && subjectId.value !== null),
+    enabled: computed(() => subjectId.value !== null),
     placeholderData: keepPreviousData,
   })
 }
 
-export function useStoreScoresMutation(subjectId: Ref<number | null>) {
+export interface SaveScoresPayload {
+  create: StoreScoresPayload | null
+  update: { id: number; score: number | null }[]
+}
+
+/** Créations et corrections dans une seule mutation : un seul rafraîchissement à la fin, sans clignotement. */
+export function useSaveScoresMutation(subjectId: Ref<number | null>) {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: (payload: StoreScoresPayload) => storeScoresForSubject(payload),
+    mutationFn: ({ create, update }: SaveScoresPayload) =>
+      Promise.all([
+        ...(create ? [storeScoresForSubject(create)] : []),
+        ...update.map(({ id, score }) => updateScore(id, score)),
+      ]),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: eligibleStudentsKey(subjectId.value) }),
   })
 }
 
-export function useUpdateScoreMutation(subjectId: Ref<number | null>) {
+export function useDeleteScoreMutation(subjectId: Ref<number | null>) {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: ({ id, score }: { id: number; score: number | null }) => updateScore(id, score),
+    mutationFn: (id: number) => deleteScore(id),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: eligibleStudentsKey(subjectId.value) }),
   })
 }
