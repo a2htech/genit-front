@@ -23,6 +23,8 @@
   --accent-foreground: #000000;
   --destructive: #ef4444;
   --destructive-foreground: #ffffff;
+  --critical: #991b1b;
+  --critical-foreground: #ffffff;
   --success: #22c55e;
   --success-foreground: #000000;
   --warning: #facc15;
@@ -52,6 +54,8 @@
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
+  --color-critical: var(--critical);
+  --color-critical-foreground: var(--critical-foreground);
   --color-success: var(--success);
   --color-success-foreground: var(--success-foreground);
   --color-warning: var(--warning);

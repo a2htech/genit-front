@@ -92,6 +92,7 @@ const confirmOpen = ref(false)
         <Badge variant="warning">Warning</Badge>
         <Badge variant="destructive">Destructive</Badge>
         <Badge variant="accent">Accent</Badge>
+        <Badge variant="critical">Critical</Badge>
         <Badge variant="outline">Outline</Badge>
       </div>
     </section>
