@@ -34,12 +34,13 @@ const { data: currentYear, isPending } = useCurrentAcademicYearQuery()
 const createMutation = useCreateAcademicYearMutation()
 
 const { data: missingResults, isPending: missingPending } = useMissingAnnualResultsQuery()
-const hasMissingResults = computed(() => (missingResults.value ?? []).length > 0)
+const missingCount = computed(() => (missingResults.value ?? []).length)
+const hasMissingResults = computed(() => missingCount.value > 0)
 
 const calculateMutation = useCalculateAllAnnualResultsMutation()
 const calculateErrorMessage = ref<string | null>(null)
 
-async function calculateMissingResults() {
+async function calculateResults() {
   calculateErrorMessage.value = null
   try {
     await calculateMutation.mutateAsync()
@@ -47,6 +48,11 @@ async function calculateMissingResults() {
     calculateErrorMessage.value = apiErrorMessage(e)
   }
 }
+
+const calculateButtonLabel = computed(() => {
+  if (calculateMutation.isPending.value) return 'Calcul en cours…'
+  return hasMissingResults.value ? 'Calculer les résultats' : 'Recalculer les résultats'
+})
 
 const { data: summary, isPending: summaryPending } = useAnnualResultsSummaryQuery()
 
@@ -113,18 +119,21 @@ async function confirmSwitch() {
         <Skeleton v-if="isPending" class="mt-1 h-8 w-20" />
         <div v-else class="font-heading text-2xl font-extrabold">{{ currentYear?.year }}</div>
       </div>
-      <Skeleton v-if="missingPending" class="h-11 w-56" />
-      <Button
-        v-else-if="hasMissingResults"
-        variant="secondary"
-        :disabled="calculateMutation.isPending.value"
-        @click="calculateMissingResults"
-      >
-        {{ calculateMutation.isPending.value ? 'Calcul en cours…' : 'Calculer les résultats' }}
-      </Button>
-      <Button v-else variant="destructive" :disabled="isPending" @click="openSwitchConfirm">
-        Basculer vers l'année suivante
-      </Button>
+      <Skeleton v-if="missingPending" class="h-11 w-96" />
+      <div v-else>
+        <div class="flex flex-wrap items-center gap-3">
+          <Button variant="secondary" :disabled="calculateMutation.isPending.value" @click="calculateResults">
+            {{ calculateButtonLabel }}
+          </Button>
+          <Button variant="destructive" :disabled="isPending || hasMissingResults" @click="openSwitchConfirm">
+            Basculer vers l'année suivante
+          </Button>
+        </div>
+        <p v-if="hasMissingResults" class="mt-2 max-w-sm text-xs font-semibold text-muted-foreground">
+          {{ missingCount }} étudiant{{ missingCount > 1 ? 's' : '' }} sans décision : la bascule reste bloquée tant que
+          leurs résultats ne sont pas calculés.
+        </p>
+      </div>
     </Card>
 
     <Alert v-if="calculateErrorMessage" variant="destructive" class="mb-6">{{ calculateErrorMessage }}</Alert>
