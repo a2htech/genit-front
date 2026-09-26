@@ -23,7 +23,7 @@ import {
   useMissingAnnualResultsQuery,
 } from '@/features/transcript'
 import { apiErrorMessage } from '@/shared/api/errors'
-import { useCreateAcademicYearMutation, useCurrentAcademicYearQuery } from './academic-year.queries'
+import { useCurrentAcademicYearQuery, useRolloverAcademicYearMutation } from './academic-year.queries'
 import { LEVELS, type Level } from './academic-year.types'
 import { useContextStore } from './context.store'
 
@@ -31,7 +31,7 @@ const router = useRouter()
 const context = useContextStore()
 
 const { data: currentYear, isPending } = useCurrentAcademicYearQuery()
-const createMutation = useCreateAcademicYearMutation()
+const rolloverMutation = useRolloverAcademicYearMutation()
 
 const { data: missingResults, isPending: missingPending } = useMissingAnnualResultsQuery()
 const missingCount = computed(() => (missingResults.value ?? []).length)
@@ -78,6 +78,9 @@ const summaryRows = computed(() =>
   }),
 )
 
+// Après une bascule, personne n'est inscrit : la liste des manquants est vide mais le back refuse (409).
+const hasNoDecision = computed(() => summaryRows.value.every((row) => row.total === 0))
+
 function openDecisions(level: Level) {
   context.setLevel(level)
   router.push({ name: 'decisions' })
@@ -97,10 +100,10 @@ function openSwitchConfirm() {
 }
 
 async function confirmSwitch() {
-  if (!switchConfirmValid.value || nextYear.value === null) return
+  if (!switchConfirmValid.value) return
   switchErrorMessage.value = null
   try {
-    await createMutation.mutateAsync(nextYear.value)
+    await rolloverMutation.mutateAsync()
   } catch (e) {
     switchErrorMessage.value = apiErrorMessage(e)
     return
@@ -119,19 +122,26 @@ async function confirmSwitch() {
         <Skeleton v-if="isPending" class="mt-1 h-8 w-20" />
         <div v-else class="font-heading text-2xl font-extrabold">{{ currentYear?.year }}</div>
       </div>
-      <Skeleton v-if="missingPending" class="h-11 w-96" />
+      <Skeleton v-if="missingPending || summaryPending" class="h-11 w-96" />
       <div v-else>
         <div class="flex flex-wrap items-center gap-3">
           <Button variant="secondary" :disabled="calculateMutation.isPending.value" @click="calculateResults">
             {{ calculateButtonLabel }}
           </Button>
-          <Button variant="destructive" :disabled="isPending || hasMissingResults" @click="openSwitchConfirm">
+          <Button
+            variant="destructive"
+            :disabled="isPending || hasMissingResults || hasNoDecision"
+            @click="openSwitchConfirm"
+          >
             Basculer vers l'année suivante
           </Button>
         </div>
         <p v-if="hasMissingResults" class="mt-2 max-w-sm text-xs font-semibold text-muted-foreground">
           {{ missingCount }} étudiant{{ missingCount > 1 ? 's' : '' }} sans décision : la bascule reste bloquée tant que
           leurs résultats ne sont pas calculés.
+        </p>
+        <p v-else-if="hasNoDecision" class="mt-2 max-w-sm text-xs font-semibold text-muted-foreground">
+          Aucune décision calculée cette année : la bascule reste bloquée.
         </p>
       </div>
     </Card>
@@ -197,8 +207,10 @@ async function confirmSwitch() {
         </DialogHeader>
 
         <div class="border-2 border-border bg-muted p-3.5 text-sm leading-relaxed">
-          Cette action va créer l'année <strong>{{ nextYear }}</strong> et la définir comme année courante pour tout le
-          monde. <strong>Cette action est irréversible.</strong>
+          Cette action va faire passer chaque étudiant inscrit en <strong>{{ nextYear }}</strong> selon sa décision
+          annuelle, archiver les non-inscrits et définir <strong>{{ nextYear }}</strong> comme année courante pour tout
+          le monde. Les étudiants passés devront ensuite être réinscrits.
+          <strong>Cette action est irréversible.</strong>
         </div>
 
         <Alert v-if="switchErrorMessage" variant="destructive">{{ switchErrorMessage }}</Alert>
@@ -212,7 +224,7 @@ async function confirmSwitch() {
           <Button variant="secondary" emphasis="compact" @click="switchModalOpen = false">Annuler</Button>
           <Button
             variant="destructive"
-            :disabled="!switchConfirmValid || createMutation.isPending.value"
+            :disabled="!switchConfirmValid || rolloverMutation.isPending.value"
             @click="confirmSwitch"
           >
             Confirmer la bascule
