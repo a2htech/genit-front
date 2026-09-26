@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { IdCardIcon } from '@lucide/vue'
+import { CheckIcon, ChevronDownIcon, ChevronsUpDownIcon, ChevronUpIcon, IdCardIcon, XIcon } from '@lucide/vue'
 import { Badge } from '@/design-system/ui/badge'
 import { Button } from '@/design-system/ui/button'
 import { Input } from '@/design-system/ui/input'
@@ -12,7 +12,15 @@ import { useContextStore } from '@/features/academic-year'
 import { formatDate } from '@/shared/utils/format'
 import { useFilteredStudents } from './student.queries'
 import StudentFormModal from './StudentFormModal.vue'
-import { studentFullName, type Student } from './student.types'
+import {
+  ACADEMIC_STATUS_VARIANTS,
+  DEFAULT_STUDENT_SORT,
+  STUDENT_STATE_LABELS,
+  studentFullName,
+  type Student,
+  type StudentSort,
+  type StudentSortKey,
+} from './student.types'
 
 const router = useRouter()
 const context = useContextStore()
@@ -22,7 +30,33 @@ const search = ref('')
 const page = ref(1)
 watch(search, () => (page.value = 1))
 
-const { data, isPending, filtered } = useFilteredStudents(search)
+const sort = ref<StudentSort>({ ...DEFAULT_STUDENT_SORT })
+watch(sort, () => (page.value = 1))
+
+const columns: { key: StudentSortKey; label: string }[] = [
+  { key: 'id', label: '#' },
+  { key: 'name', label: 'Étudiant' },
+  { key: 'birthday', label: 'Naissance' },
+  { key: 'state', label: 'Situation' },
+  { key: 'registered', label: 'Inscrit' },
+]
+
+function toggleSort(key: StudentSortKey) {
+  const dir = sort.value.key === key && sort.value.dir === 'asc' ? 'desc' : 'asc'
+  sort.value = { key, dir }
+}
+
+function sortIcon(key: StudentSortKey) {
+  if (sort.value.key !== key) return ChevronsUpDownIcon
+  return sort.value.dir === 'asc' ? ChevronUpIcon : ChevronDownIcon
+}
+
+function ariaSort(key: StudentSortKey) {
+  if (sort.value.key !== key) return 'none'
+  return sort.value.dir === 'asc' ? 'ascending' : 'descending'
+}
+
+const { data, isPending, filtered } = useFilteredStudents(search, sort)
 const total = computed(() => filtered.value.length)
 const totalPages = computed(() => Math.max(1, Math.ceil(total.value / PAGE_SIZE)))
 const pageNumbers = computed(() => Array.from({ length: totalPages.value }, (_, i) => i + 1))
@@ -34,7 +68,11 @@ const formOpen = ref(false)
 // Le bulletin reprend la recherche pour parcourir les étudiants dans l'ordre de ce tableau.
 function openTranscript(s: Student) {
   const term = search.value.trim()
-  router.push({ name: 'transcript', params: { studentId: String(s.id) }, query: term ? { search: term } : {} })
+  router.push({
+    name: 'transcript',
+    params: { studentId: String(s.id) },
+    query: { ...(term ? { search: term } : {}), sort: sort.value.key, dir: sort.value.dir },
+  })
 }
 
 function openDetail(s: Student) {
@@ -53,11 +91,16 @@ function openDetail(s: Student) {
   <Table>
     <TableHeader>
       <TableRow>
-        <TableHead>#</TableHead>
-        <TableHead>Nom</TableHead>
-        <TableHead>Prénom</TableHead>
-        <TableHead>Naissance</TableHead>
-        <TableHead>Statut</TableHead>
+        <TableHead v-for="col in columns" :key="col.key" :aria-sort="ariaSort(col.key)" class="p-0">
+          <button
+            type="button"
+            class="flex h-11 w-full cursor-pointer items-center gap-1.5 px-3.5 text-left uppercase transition-colors hover:bg-foreground/15 focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none focus-visible:ring-inset"
+            @click="toggleSort(col.key)"
+          >
+            {{ col.label }}
+            <component :is="sortIcon(col.key)" class="size-3.5 shrink-0" aria-hidden="true" />
+          </button>
+        </TableHead>
         <TableHead class="text-right">Actions</TableHead>
       </TableRow>
     </TableHeader>
@@ -66,7 +109,7 @@ function openDetail(s: Student) {
         v-if="isPending && !data"
         :rows="5"
         :columns="6"
-        :cell-class="['h-4 w-6', 'h-4 w-28', 'h-4 w-24', 'h-4 w-20', 'h-5 w-18', 'ml-auto h-4 w-24']"
+        :cell-class="['h-4 w-6', 'h-4 w-40', 'h-4 w-20', 'h-5 w-26', 'h-4 w-5', 'ml-auto h-4 w-24']"
       />
       <template v-else>
         <TableEmpty v-if="students.length === 0" :colspan="6">
@@ -76,13 +119,20 @@ function openDetail(s: Student) {
         </TableEmpty>
         <TableRow v-for="s in students" :key="s.id" interactive @click="openTranscript(s)">
           <TableCell class="font-bold">{{ s.id }}</TableCell>
-          <TableCell class="underline">{{ s.last_name }}</TableCell>
-          <TableCell>{{ s.first_name }}</TableCell>
+          <TableCell>
+            <span class="underline"
+              ><span class="font-bold">{{ s.last_name }}</span> {{ s.first_name }}</span
+            >
+          </TableCell>
           <TableCell>{{ formatDate(s.birthday) }}</TableCell>
           <TableCell>
-            <Badge :variant="s.registered ? 'success' : 'warning'">
-              {{ s.registered ? 'Inscrit' : 'Non inscrit' }}
-            </Badge>
+            <Badge :variant="ACADEMIC_STATUS_VARIANTS[s.state]">{{ STUDENT_STATE_LABELS[s.state] }}</Badge>
+          </TableCell>
+          <TableCell>
+            <!-- Icône plutôt qu'un badge : le non-inscrit doit sauter aux yeux sans concurrencer le badge Situation. -->
+            <span class="sr-only">{{ s.registered ? 'Inscrit' : 'Non inscrit' }}</span>
+            <CheckIcon v-if="s.registered" class="size-5 stroke-3 text-success" aria-hidden="true" />
+            <XIcon v-else class="size-5 stroke-3 text-destructive" aria-hidden="true" />
           </TableCell>
           <TableCell class="text-right" @click.stop>
             <!-- aria-label repris du libellé visible : le nom accessible doit le contenir (WCAG Label in Name). -->

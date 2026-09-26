@@ -2,7 +2,7 @@ import { computed, type Ref } from 'vue'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import { useContextStore } from '@/features/academic-year'
 import { createStudent, deleteStudent, fetchStudent, fetchStudents, updateStudent } from './student.api'
-import type { StudentFormValues, StudentUpdatePayload } from './student.types'
+import { sortStudents, type StudentFormValues, type StudentSort, type StudentUpdatePayload } from './student.types'
 
 function studentsKey(level: string | null) {
   return ['students', level] as const
@@ -24,13 +24,15 @@ export function useStudentsQuery() {
 }
 
 /** Filtre partagé par la liste et la navigation du bulletin : les deux parcourent les étudiants dans le même ordre. */
-export function useFilteredStudents(search: Ref<string>) {
+export function useFilteredStudents(search: Ref<string>, sort: Ref<StudentSort>) {
   const query = useStudentsQuery()
   const filtered = computed(() => {
     const term = search.value.toLowerCase().trim()
     const list = query.data.value ?? []
-    if (!term) return list
-    return list.filter((s) => `${s.first_name} ${s.last_name ?? ''} ${s.id}`.toLowerCase().includes(term))
+    const matching = term
+      ? list.filter((s) => `${s.first_name} ${s.last_name ?? ''} ${s.id}`.toLowerCase().includes(term))
+      : list
+    return sortStudents(matching, sort.value)
   })
   return { ...query, filtered }
 }
