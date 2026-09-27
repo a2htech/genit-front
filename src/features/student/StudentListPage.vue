@@ -1,7 +1,16 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { CheckIcon, ChevronDownIcon, ChevronsUpDownIcon, ChevronUpIcon, IdCardIcon, XIcon } from '@lucide/vue'
+import {
+  ArchiveIcon,
+  ArrowRightIcon,
+  CheckIcon,
+  ChevronDownIcon,
+  ChevronsUpDownIcon,
+  ChevronUpIcon,
+  IdCardIcon,
+  XIcon,
+} from '@lucide/vue'
 import { Badge } from '@/design-system/ui/badge'
 import { Button } from '@/design-system/ui/button'
 import { Input } from '@/design-system/ui/input'
@@ -9,6 +18,7 @@ import { Pagination, PaginationContent, PaginationItem } from '@/design-system/u
 import { TableRowsSkeleton } from '@/design-system/ui/skeleton'
 import { Table, TableBody, TableCell, TableEmpty, TableHead, TableHeader, TableRow } from '@/design-system/ui/table'
 import { useContextStore } from '@/features/academic-year'
+import { useAuthStore } from '@/features/auth'
 import { formatDate } from '@/shared/utils/format'
 import { useFilteredStudents } from './student.queries'
 import StudentFormModal from './StudentFormModal.vue'
@@ -24,6 +34,7 @@ import {
 
 const router = useRouter()
 const context = useContextStore()
+const auth = useAuthStore()
 
 const PAGE_SIZE = 10
 const search = ref('')
@@ -159,6 +170,17 @@ function openDetail(s: Student) {
       </PaginationItem>
     </PaginationContent>
   </Pagination>
+
+  <div v-if="auth.isAdmin" class="mt-4.5 flex justify-end">
+    <RouterLink
+      :to="{ name: 'archived-students' }"
+      class="inline-flex items-center gap-1.5 py-1.5 text-sm font-bold text-foreground underline decoration-2 underline-offset-3 hover:decoration-accent focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
+    >
+      <ArchiveIcon class="size-4 stroke-[2.5]" aria-hidden="true" />
+      Voir les étudiants archivés
+      <ArrowRightIcon class="size-3.5 stroke-[2.5]" aria-hidden="true" />
+    </RouterLink>
+  </div>
 
   <StudentFormModal v-model:open="formOpen" :student="null" />
 </template>

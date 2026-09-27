@@ -1,9 +1,12 @@
 import { defineStore } from 'pinia'
 import { useAuth } from '@clerk/vue'
-import { watch } from 'vue'
+import { computed, watch } from 'vue'
 
 export const useAuthStore = defineStore('auth', () => {
-  const { isSignedIn, isLoaded, signOut } = useAuth()
+  const { isSignedIn, isLoaded, orgRole, signOut } = useAuth()
+
+  // Même source que le back, qui déduit le rôle admin de l'org_role Clerk.
+  const isAdmin = computed(() => orgRole.value === 'org:admin')
 
   /** Le guard de route doit attendre l'hydratation de la session Clerk avant de trancher. */
   function waitUntilLoaded(): Promise<void> {
@@ -18,5 +21,5 @@ export const useAuthStore = defineStore('auth', () => {
     })
   }
 
-  return { isSignedIn, isLoaded, signOut, waitUntilLoaded }
+  return { isSignedIn, isLoaded, isAdmin, signOut, waitUntilLoaded }
 })

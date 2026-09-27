@@ -1,8 +1,21 @@
 import { computed, type Ref } from 'vue'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import { useContextStore } from '@/features/academic-year'
-import { createStudent, deleteStudent, fetchStudent, fetchStudents, updateStudent } from './student.api'
-import { sortStudents, type StudentFormValues, type StudentSort, type StudentUpdatePayload } from './student.types'
+import {
+  createStudent,
+  deleteStudent,
+  fetchArchivedStudents,
+  fetchStudent,
+  fetchStudents,
+  updateStudent,
+} from './student.api'
+import {
+  sortStudents,
+  type ArchivedStudentFilters,
+  type StudentFormValues,
+  type StudentSort,
+  type StudentUpdatePayload,
+} from './student.types'
 
 function studentsKey(level: string | null) {
   return ['students', level] as const
@@ -35,6 +48,15 @@ export function useFilteredStudents(search: Ref<string>, sort: Ref<StudentSort>)
     return sortStudents(matching, sort.value)
   })
   return { ...query, filtered }
+}
+
+/** Paginé côté back, tous niveaux confondus : ne dépend pas du niveau du contexte. */
+export function useArchivedStudentsQuery(filters: Ref<ArchivedStudentFilters>) {
+  return useQuery({
+    queryKey: computed(() => ['archived-students', filters.value] as const),
+    queryFn: () => fetchArchivedStudents(filters.value),
+    placeholderData: keepPreviousData,
+  })
 }
 
 /** `GET /students/{id}` est sous CurrentAcademicYearScope : un étudiant d'une autre année ressort en 404, pas la peine de réessayer. */

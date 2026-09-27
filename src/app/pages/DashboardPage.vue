@@ -19,6 +19,7 @@ import { StatTile } from '@/design-system/ui/stat-tile'
 import { LEVELS } from '@/features/academic-year'
 import { isAdminDashboard, useDashboardQuery } from '@/features/dashboard'
 import { ACADEMIC_STATUS_CODES, ACADEMIC_STATUS_LABELS, ACADEMIC_STATUS_VARIANTS } from '@/features/student'
+import { formatNumber } from '@/shared/utils/format'
 
 const { data, isPending } = useDashboardQuery()
 
@@ -40,10 +41,6 @@ const statusSegments = computed(() => {
     variant: ACADEMIC_STATUS_VARIANTS[code],
   }))
 })
-
-function formatNumber(value: number): string {
-  return value.toLocaleString('fr-FR')
-}
 </script>
 
 <template>
