@@ -1,6 +1,14 @@
 export interface LaravelPage<T> {
   data: T[]
-  meta: { current_page: number; last_page: number; per_page: number; total: number }
+  meta: {
+    current_page: number
+    last_page: number
+    per_page: number
+    total: number
+    /** Rang du premier et du dernier élément de la page, null si elle est vide. */
+    from: number | null
+    to: number | null
+  }
 }
 
 /** Laravel resource collections paginate server-side; the front wants the full list per (level, ...). */

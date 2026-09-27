@@ -6,6 +6,10 @@ export function formatAverage(average: number | null | undefined): string {
   return typeof average === 'number' ? average.toFixed(2) : '—'
 }
 
+export function formatNumber(value: number): string {
+  return value.toLocaleString('fr-FR')
+}
+
 export function formatDate(date: string): string {
   return new Intl.DateTimeFormat('fr-FR').format(new Date(date))
 }

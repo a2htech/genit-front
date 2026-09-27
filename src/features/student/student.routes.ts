@@ -7,6 +7,12 @@ export const studentRoutes: RouteRecordRaw[] = [
     component: () => import('./StudentListPage.vue'),
   },
   {
+    path: '/students/archived',
+    name: 'archived-students',
+    component: () => import('./ArchivedStudentListPage.vue'),
+    meta: { nav: 'students' },
+  },
+  {
     path: '/students/:studentId',
     name: 'student-detail',
     component: () => import('./StudentDetailPage.vue'),

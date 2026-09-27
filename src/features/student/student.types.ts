@@ -69,6 +69,12 @@ export interface StudentFormValues {
 
 export type StudentUpdatePayload = Partial<StudentFormValues> & { registered?: boolean }
 
+export interface ArchivedStudentFilters {
+  page: number
+  name: string
+  level: Level | 'all'
+}
+
 export function studentFullName(s: { first_name: string; last_name: string | null }): string {
   return `${s.first_name} ${s.last_name ?? ''}`.trim()
 }
