@@ -19,7 +19,14 @@ import { Empty, EmptyDescription, EmptyTitle } from '@/design-system/ui/empty'
 import { Skeleton } from '@/design-system/ui/skeleton'
 import { ToggleGroup, ToggleGroupItem } from '@/design-system/ui/toggle-group'
 import { LEVELS, useContextStore, type Level } from '@/features/academic-year'
-import { studentFullName, useFilteredStudents, type Student } from '@/features/student'
+import {
+  DEFAULT_STUDENT_SORT,
+  isStudentSortKey,
+  studentFullName,
+  useFilteredStudents,
+  type Student,
+  type StudentSort,
+} from '@/features/student'
 import { formatAverage, formatDate, formatScore, isFailingScore } from '@/shared/utils/format'
 import { downloadTranscriptPdf } from './transcript.api'
 import { useTranscriptQuery } from './transcript.queries'
@@ -36,7 +43,12 @@ const studentId = computed(() => {
 
 // Recherche transmise par la liste : précédent/suivant parcourent son tableau entier, pas sa seule page affichée.
 const listSearch = computed(() => (typeof route.query.search === 'string' ? route.query.search : ''))
-const { data: students, filtered: listStudents } = useFilteredStudents(listSearch)
+// Le tri vient de l'URL lui aussi : sans lui, précédent/suivant suivraient un ordre que la liste n'affiche plus.
+const listSort = computed<StudentSort>(() => ({
+  key: isStudentSortKey(route.query.sort) ? route.query.sort : DEFAULT_STUDENT_SORT.key,
+  dir: route.query.dir === 'desc' ? 'desc' : 'asc',
+}))
+const { data: students, filtered: listStudents } = useFilteredStudents(listSearch, listSort)
 const currentStudent = computed(() => students.value?.find((s) => s.id === studentId.value) ?? null)
 
 const position = computed(() => listStudents.value.findIndex((s) => s.id === studentId.value))

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { CircleXIcon } from '@lucide/vue'
+import { BanIcon } from '@lucide/vue'
 import { Alert } from '@/design-system/ui/alert'
 import { Badge } from '@/design-system/ui/badge'
 import { Button } from '@/design-system/ui/button'
@@ -158,14 +158,14 @@ function openTranscript(studentId: number) {
               </TableCell>
               <TableCell>
                 <Badge
-                  :variant="ACADEMIC_STATUS_VARIANTS[row.result.status]"
+                  :variant="row.result.expired ? 'critical' : ACADEMIC_STATUS_VARIANTS[row.result.status]"
                   :title="
                     row.result.expired
                       ? 'Dette non rattrapée dans le délai imparti : ne peut plus se réinscrire à ce niveau.'
                       : undefined
                   "
                 >
-                  <CircleXIcon v-if="row.result.expired" aria-hidden="true" class="size-3" />
+                  <BanIcon v-if="row.result.expired" aria-hidden="true" class="size-3" />
                   {{ row.result.expired ? 'Exclu(e)' : ACADEMIC_STATUS_LABELS[row.result.status] }}
                 </Badge>
               </TableCell>

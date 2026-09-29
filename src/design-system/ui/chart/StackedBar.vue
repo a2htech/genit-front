@@ -24,6 +24,7 @@ const SEGMENT_FILLS: Record<NonNullable<BadgeVariants['variant']>, string> = {
   success: 'bg-success',
   warning: 'bg-warning',
   accent: 'bg-accent',
+  critical: 'bg-critical',
   outline: 'bg-background',
 }
 

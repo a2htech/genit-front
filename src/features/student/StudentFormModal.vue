@@ -13,7 +13,7 @@ import {
 import { Field, FieldGroup, FieldLabel } from '@/design-system/ui/field'
 import { Input } from '@/design-system/ui/input'
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from '@/design-system/ui/select'
-import { Toggle } from '@/design-system/ui/toggle'
+import { ToggleGroup, ToggleGroupItem } from '@/design-system/ui/toggle-group'
 import { apiErrorMessage } from '@/shared/api/errors'
 import { useCreateStudentMutation, useUpdateStudentMutation } from './student.queries'
 import { SEX_LABELS, type Student, type StudentFormValues, type Sex } from './student.types'
@@ -64,6 +64,11 @@ watch(
   },
   { immediate: true },
 )
+
+/** ToggleGroup single se désélectionne au reclic : ignorer la valeur vide pour garder un booléen. */
+function setRegistered(value: unknown) {
+  if (value) registered.value = value === 'yes'
+}
 
 const createMutation = useCreateStudentMutation()
 const updateMutation = useUpdateStudentMutation()
@@ -139,9 +144,24 @@ async function save() {
         </Field>
         <Field v-if="editing">
           <FieldLabel>Inscription</FieldLabel>
-          <Toggle :model-value="registered" @update:model-value="(v) => (registered = !!v)">
-            {{ registered ? 'Inscrit' : 'Non inscrit' }}
-          </Toggle>
+          <!-- Deux options explicites : un toggle seul ne dit pas si son libellé est l'état courant ou l'action. -->
+          <ToggleGroup
+            :model-value="registered ? 'yes' : 'no'"
+            type="single"
+            variant="outline"
+            aria-label="Inscription"
+            @update:model-value="setRegistered"
+          >
+            <ToggleGroupItem value="yes" class="data-[state=on]:bg-success data-[state=on]:text-success-foreground">
+              Inscrit
+            </ToggleGroupItem>
+            <ToggleGroupItem
+              value="no"
+              class="data-[state=on]:bg-destructive data-[state=on]:text-destructive-foreground"
+            >
+              Non inscrit
+            </ToggleGroupItem>
+          </ToggleGroup>
         </Field>
       </FieldGroup>
 

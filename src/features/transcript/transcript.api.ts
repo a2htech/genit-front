@@ -41,7 +41,7 @@ export async function fetchStudentsMissingAnnualResults(): Promise<Student[]> {
   return data.data
 }
 
-/** Recalcule pour tous les niveaux : usage volontairement global, réservé au blocage de bascule d'année. */
+/** Recalcule tous les niveaux, décisions déjà calculées comprises. */
 export async function calculateAllAnnualResults(): Promise<void> {
   await apiClient.post('/students/annual-results/calculate-all')
 }

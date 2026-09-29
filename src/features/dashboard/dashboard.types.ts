@@ -25,13 +25,15 @@ export interface DashboardAnnualResults {
 
 export interface DashboardScores {
   totalEntered: number
-  averageScore: number
+  /** null tant qu'aucune note n'est saisie ; `retakeRate` vaut 0 dans ce cas, jamais null. */
+  averageScore: number | null
   retakeRate: number
 }
 
 export interface UserDashboard {
   role: 'user'
-  academicYear: DashboardAcademicYear
+  /** null tant qu'aucune année universitaire n'est configurée côté back. */
+  academicYear: DashboardAcademicYear | null
   students: DashboardStudents
   catalog: DashboardCatalog
 }

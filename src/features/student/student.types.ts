@@ -69,6 +69,53 @@ export interface StudentFormValues {
 
 export type StudentUpdatePayload = Partial<StudentFormValues> & { registered?: boolean }
 
+export interface ArchivedStudentFilters {
+  page: number
+  name: string
+  level: Level | 'all'
+}
+
 export function studentFullName(s: { first_name: string; last_name: string | null }): string {
   return `${s.first_name} ${s.last_name ?? ''}`.trim()
+}
+
+export type StudentSortKey = 'id' | 'name' | 'birthday' | 'state' | 'registered'
+export type SortDir = 'asc' | 'desc'
+
+export interface StudentSort {
+  key: StudentSortKey
+  dir: SortDir
+}
+
+/** La liste s'ouvre sur la situation : passants, puis cumulants, puis redoublants. */
+export const DEFAULT_STUDENT_SORT: StudentSort = { key: 'state', dir: 'asc' }
+
+/** Rang métier, pas alphabétique — sinon C passerait avant P. */
+const STATE_RANK: Record<AcademicStatusCode, number> = { P: 0, C: 1, R: 2, T: 3 }
+
+const SORT_KEYS: readonly string[] = ['id', 'name', 'birthday', 'state', 'registered']
+
+export function isStudentSortKey(value: unknown): value is StudentSortKey {
+  return typeof value === 'string' && SORT_KEYS.includes(value)
+}
+
+function compare(a: Student, b: Student, key: StudentSortKey): number {
+  switch (key) {
+    case 'id':
+      return a.id - b.id
+    case 'name':
+      return `${a.last_name ?? ''} ${a.first_name}`.localeCompare(`${b.last_name ?? ''} ${b.first_name}`, 'fr')
+    case 'birthday':
+      return a.birthday.localeCompare(b.birthday)
+    case 'state':
+      return STATE_RANK[a.state] - STATE_RANK[b.state]
+    case 'registered':
+      return Number(b.registered) - Number(a.registered)
+  }
+}
+
+/** Tri stable : à égalité l'ordre d'origine (par id) tient, sinon précédent/suivant du bulletin sauterait. */
+export function sortStudents(students: Student[], sort: StudentSort): Student[] {
+  const factor = sort.dir === 'asc' ? 1 : -1
+  return [...students].sort((a, b) => factor * compare(a, b, sort.key))
 }

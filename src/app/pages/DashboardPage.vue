@@ -19,10 +19,13 @@ import { StatTile } from '@/design-system/ui/stat-tile'
 import { LEVELS } from '@/features/academic-year'
 import { isAdminDashboard, useDashboardQuery } from '@/features/dashboard'
 import { ACADEMIC_STATUS_CODES, ACADEMIC_STATUS_LABELS, ACADEMIC_STATUS_VARIANTS } from '@/features/student'
+import { formatNumber } from '@/shared/utils/format'
 
 const { data, isPending } = useDashboardQuery()
 
 const admin = computed(() => (data.value && isAdminDashboard(data.value) ? data.value : null))
+
+const averageScore = computed(() => admin.value?.scores.averageScore ?? null)
 
 const studentsByClass = computed(() =>
   LEVELS.map((level) => ({ label: level.value, value: data.value?.students.byClass[level.value] ?? 0 })),
@@ -38,17 +41,13 @@ const statusSegments = computed(() => {
     variant: ACADEMIC_STATUS_VARIANTS[code],
   }))
 })
-
-function formatNumber(value: number): string {
-  return value.toLocaleString('fr-FR')
-}
 </script>
 
 <template>
   <div>
     <div class="mb-7 flex flex-wrap items-center justify-center gap-2.5">
       <h1 class="text-center font-heading text-2xl font-extrabold">Tableau de bord</h1>
-      <Badge v-if="data" variant="outline">Année {{ data.academicYear.year }}</Badge>
+      <Badge v-if="data?.academicYear" variant="outline">Année {{ data.academicYear.year }}</Badge>
     </div>
 
     <div class="mb-6 grid grid-cols-1 gap-4.5 sm:grid-cols-3">
@@ -78,9 +77,9 @@ function formatNumber(value: number): string {
         <StatTile label="Notes saisies" :value="formatNumber(admin.scores.totalEntered)" :icon="ClipboardCheckIcon" />
         <StatTile
           label="Moyenne générale"
-          :value="`${admin.scores.averageScore.toFixed(1)}/20`"
+          :value="averageScore === null ? '—' : `${averageScore.toFixed(1)}/20`"
           :icon="TrendingUpIcon"
-          :progress="(admin.scores.averageScore / 20) * 100"
+          :progress="averageScore === null ? undefined : (averageScore / 20) * 100"
         />
         <StatTile
           label="Taux de redoublement"

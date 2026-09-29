@@ -14,7 +14,7 @@ export const queryClient = new QueryClient({
 
 /**
  * L'année universitaire courante ne change que via une bascule explicite (cf.
- * useCreateAcademicYearMutation) : elle survit donc à un refresh au lieu d'être re-fetchée comme
+ * useRolloverAcademicYearMutation) : elle survit donc à un refresh au lieu d'être re-fetchée comme
  * le reste du cache, qui lui reste en mémoire et se vide à chaque rechargement de page.
  */
 persistQueryClient({
