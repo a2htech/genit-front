@@ -7,6 +7,8 @@ export const useAuthStore = defineStore('auth', () => {
 
   // Même source que le back, qui déduit le rôle admin de l'org_role Clerk.
   const isAdmin = computed(() => orgRole.value === 'org:admin')
+  // Recopie RoleEnum::permissions() côté back : `scores.deliberate` n'est donné qu'à admin et coordinator.
+  const canDeliberateScores = computed(() => orgRole.value === 'org:admin' || orgRole.value === 'org:coordinator')
 
   /** Le guard de route doit attendre l'hydratation de la session Clerk avant de trancher. */
   function waitUntilLoaded(): Promise<void> {
@@ -21,5 +23,5 @@ export const useAuthStore = defineStore('auth', () => {
     })
   }
 
-  return { isSignedIn, isLoaded, isAdmin, signOut, waitUntilLoaded }
+  return { isSignedIn, isLoaded, isAdmin, canDeliberateScores, signOut, waitUntilLoaded }
 })

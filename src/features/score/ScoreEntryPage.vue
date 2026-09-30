@@ -13,11 +13,11 @@ import { useTeachingUnitsQuery } from '@/features/teaching-unit'
 import { studentFullName, type Student } from '@/features/student'
 import { apiErrorMessage } from '@/shared/api/errors'
 import { registerUnsavedGuard } from '@/shared/lib/unsaved-changes'
-import { isFailingScore } from '@/shared/utils/format'
+import { formatScore, isFailingScore } from '@/shared/utils/format'
 import RetakeStudentCombobox from './RetakeStudentCombobox.vue'
 import ScoreEntryFilters from './ScoreEntryFilters.vue'
 import { useDeleteScoreMutation, useEligibleStudentsQuery, useSaveScoresMutation } from './score.queries'
-import type { ExamSession } from './score.types'
+import { isDeliberated, type ExamSession } from './score.types'
 
 const context = useContextStore()
 const errorMessage = ref<string | null>(null)
@@ -226,6 +226,12 @@ const onDarkButtonClass =
                   {{ row.student.class }}
                 </Badge>
                 <Badge v-if="row.isAdded" variant="accent" class="ml-2">Ajouté</Badge>
+                <template v-if="row.existing && isDeliberated(row.existing)">
+                  <Badge class="ml-2">Délibérée</Badge>
+                  <p class="mt-0.5 text-xs text-muted-foreground">
+                    Note obtenue : {{ formatScore(row.existing.original) }}. La corriger ici efface la délibération.
+                  </p>
+                </template>
               </TableCell>
               <TableCell>
                 <div class="flex items-center gap-2">

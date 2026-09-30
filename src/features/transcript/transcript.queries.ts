@@ -11,17 +11,27 @@ import {
   fetchTranscriptForClass,
 } from './transcript.api'
 
+function transcriptKey(studentId: number | null) {
+  return ['transcript', studentId] as const
+}
+
 /** Le niveau courant de l'étudiant est toujours celui du contexte (la recherche ne liste que ce niveau-là). */
 export function useTranscriptQuery(studentId: Ref<number | null>, levelView: Ref<Level | null>) {
   const context = useContextStore()
   return useQuery({
-    queryKey: computed(() => ['transcript', studentId.value, levelView.value]),
+    queryKey: computed(() => [...transcriptKey(studentId.value), levelView.value]),
     queryFn: () =>
       levelView.value === context.level
         ? fetchTranscript(studentId.value!)
         : fetchTranscriptForClass(studentId.value!, levelView.value!),
     enabled: computed(() => studentId.value !== null && levelView.value !== null),
   })
+}
+
+/** Tous niveaux : une note de cumul délibérée change aussi la décision du niveau courant. */
+export function useInvalidateStudentTranscripts(studentId: Ref<number | null>) {
+  const queryClient = useQueryClient()
+  return () => queryClient.invalidateQueries({ queryKey: transcriptKey(studentId.value) })
 }
 
 function annualResultsKey(level: string | null) {

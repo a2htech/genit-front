@@ -1,3 +1,4 @@
+import { isAxiosError } from 'axios'
 import { apiClient } from '@/shared/api/client'
 import type { Student } from '@/features/student'
 import { SESSION_CODE, type ExamSession, type Score, type SubjectEligibleStudents } from './score.types'
@@ -38,4 +39,27 @@ export async function updateScore(id: number, score: number | null): Promise<Sco
 
 export async function deleteScore(id: number): Promise<void> {
   await apiClient.delete(`/scores/${id}`)
+}
+
+/** Année courante seulement : 404 = aucune note cette année pour cette session, donc rien à délibérer. */
+export async function fetchCurrentYearScore(
+  studentId: number,
+  subjectId: number,
+  session: ExamSession,
+): Promise<Score | null> {
+  try {
+    const { data } = await apiClient.get<{ data: Score }>('/scores/latest', {
+      params: { student_id: studentId, subject_id: subjectId, session: SESSION_CODE[session], across_all_years: 0 },
+    })
+    return data.data
+  } catch (error) {
+    if (isAxiosError(error) && error.response?.status === 404) return null
+    throw error
+  }
+}
+
+/** Remplace `score` et laisse `original` intact ; le back recalcule le résultat de la matière. */
+export async function deliberateScore(id: number, score: number): Promise<Score> {
+  const { data } = await apiClient.post<{ data: Score }>(`/scores/${id}/deliberate`, { score })
+  return data.data
 }

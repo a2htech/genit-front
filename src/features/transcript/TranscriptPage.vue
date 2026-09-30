@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter, type LocationQueryRaw } from 'vue-router'
-import { CheckIcon, ChevronDownIcon, ChevronLeftIcon, ChevronRightIcon } from '@lucide/vue'
+import { CheckIcon, ChevronDownIcon, ChevronLeftIcon, ChevronRightIcon, GavelIcon } from '@lucide/vue'
 import { Badge } from '@/design-system/ui/badge'
 import { Button } from '@/design-system/ui/button'
 import {
@@ -19,6 +19,8 @@ import { Empty, EmptyDescription, EmptyTitle } from '@/design-system/ui/empty'
 import { Skeleton } from '@/design-system/ui/skeleton'
 import { ToggleGroup, ToggleGroupItem } from '@/design-system/ui/toggle-group'
 import { LEVELS, useContextStore, type Level } from '@/features/academic-year'
+import { useAuthStore } from '@/features/auth'
+import { DeliberateScoreDialog, isDeliberated, type DeliberationTarget, type ExamSession } from '@/features/score'
 import {
   DEFAULT_STUDENT_SORT,
   isStudentSortKey,
@@ -29,12 +31,13 @@ import {
 } from '@/features/student'
 import { formatAverage, formatDate, formatScore, isFailingScore } from '@/shared/utils/format'
 import { downloadTranscriptPdf } from './transcript.api'
-import { useTranscriptQuery } from './transcript.queries'
-import { MENTION_LABEL_FR, STATUS_LABEL_FR, type AcademicStatusLabel } from './transcript.types'
+import { useInvalidateStudentTranscripts, useTranscriptQuery } from './transcript.queries'
+import { MENTION_LABEL_FR, STATUS_LABEL_FR, type AcademicStatusLabel, type TranscriptSubject } from './transcript.types'
 
 const route = useRoute()
 const router = useRouter()
 const context = useContextStore()
+const auth = useAuthStore()
 
 const studentId = computed(() => {
   const raw = route.params.studentId as string | undefined
@@ -71,6 +74,27 @@ watch(studentId, () => {
 })
 
 const { data: transcript, isPending } = useTranscriptQuery(studentId, levelView)
+
+const SCORE_COLUMNS = [
+  { key: 'regularSession', prefix: 'N', session: 'normale' },
+  { key: 'retakeSession', prefix: 'R', session: 'rattrapage' },
+] as const
+
+function scoreCells(subject: TranscriptSubject) {
+  return SCORE_COLUMNS.map((column) => ({ ...column, ...subject[column.key] }))
+}
+
+const deliberationOpen = ref(false)
+const deliberationTarget = ref<DeliberationTarget | null>(null)
+const invalidateTranscripts = useInvalidateStudentTranscripts(studentId)
+// Précédent/suivant du navigateur réutilise la page : la modale ne doit pas suivre sur un autre étudiant.
+watch(studentId, () => (deliberationOpen.value = false))
+
+function openDeliberation(subject: TranscriptSubject, session: ExamSession) {
+  if (!studentId.value) return
+  deliberationTarget.value = { studentId: studentId.value, subjectId: subject.id, subjectName: subject.name, session }
+  deliberationOpen.value = true
+}
 
 const levelIndex = computed(() => LEVELS.findIndex((n) => n.value === context.level))
 const levelOptions = computed(() => LEVELS.slice(0, levelIndex.value + 1))
@@ -246,16 +270,35 @@ async function exportPdf() {
               <td class="px-3.5 py-2 text-[13px]">{{ subj.name }}</td>
               <td class="px-3.5 py-2 text-xs text-muted-foreground">coef. {{ subj.coefficient }}</td>
               <td
-                class="w-25 px-3.5 py-2 text-right text-[13px] font-bold"
-                :class="isFailingScore(subj.regularSession.score) ? 'text-destructive' : ''"
+                v-for="cell in scoreCells(subj)"
+                :key="cell.key"
+                class="w-25 px-3.5 py-2 text-[13px] font-bold whitespace-nowrap"
               >
-                N: {{ formatScore(subj.regularSession.score) }}
-              </td>
-              <td
-                class="w-25 px-3.5 py-2 text-right text-[13px] font-bold"
-                :class="isFailingScore(subj.retakeSession.score) ? 'text-destructive' : ''"
-              >
-                R: {{ formatScore(subj.retakeSession.score) }}
+                <div class="flex items-center justify-end gap-1.5">
+                  <span :class="isFailingScore(cell.score) ? 'text-destructive' : ''">
+                    {{ cell.prefix }}: {{ formatScore(cell.score) }}
+                  </span>
+                  <template v-if="isDeliberated(cell)">
+                    <span class="sr-only">note obtenue</span>
+                    <s class="font-medium text-muted-foreground">{{ formatScore(cell.original) }}</s>
+                    <Badge>Délibérée</Badge>
+                  </template>
+                  <!-- Emplacement réservé sur chaque ligne pour que les notes restent alignées. -->
+                  <span v-if="auth.canDeliberateScores" class="w-7 shrink-0">
+                    <Button
+                      v-if="isFailingScore(cell.score) || isDeliberated(cell)"
+                      variant="ghost"
+                      size="icon"
+                      emphasis="compact"
+                      class="size-7"
+                      :aria-label="`Délibérer la note de ${subj.name}, session ${cell.session}`"
+                      :title="`Délibérer la note de ${subj.name}, session ${cell.session}`"
+                      @click="openDeliberation(subj, cell.session)"
+                    >
+                      <GavelIcon aria-hidden="true" />
+                    </Button>
+                  </span>
+                </div>
               </td>
             </tr>
           </tbody>
@@ -288,4 +331,11 @@ async function exportPdf() {
       </Button>
     </div>
   </div>
+
+  <DeliberateScoreDialog
+    v-if="auth.canDeliberateScores"
+    v-model:open="deliberationOpen"
+    :target="deliberationTarget"
+    @deliberated="invalidateTranscripts"
+  />
 </template>
