@@ -20,7 +20,7 @@ import { Skeleton } from '@/design-system/ui/skeleton'
 import { ToggleGroup, ToggleGroupItem } from '@/design-system/ui/toggle-group'
 import { LEVELS, useContextStore, type Level } from '@/features/academic-year'
 import { useAuthStore } from '@/features/auth'
-import { DeliberateScoreDialog, isDeliberated, type DeliberationTarget, type ExamSession } from '@/features/score'
+import { DeliberateScoreDialog, isDeliberated, type DeliberationTarget } from '@/features/score'
 import {
   DEFAULT_STUDENT_SORT,
   isStudentSortKey,
@@ -75,9 +75,10 @@ watch(studentId, () => {
 
 const { data: transcript, isPending } = useTranscriptQuery(studentId, levelView)
 
+// Règle métier : seul le rattrapage se délibère.
 const SCORE_COLUMNS = [
-  { key: 'regularSession', prefix: 'N', session: 'normale' },
-  { key: 'retakeSession', prefix: 'R', session: 'rattrapage' },
+  { key: 'regularSession', prefix: 'N', deliberable: false },
+  { key: 'retakeSession', prefix: 'R', deliberable: true },
 ] as const
 
 function scoreCells(subject: TranscriptSubject) {
@@ -90,9 +91,9 @@ const invalidateTranscripts = useInvalidateStudentTranscripts(studentId)
 // Précédent/suivant du navigateur réutilise la page : la modale ne doit pas suivre sur un autre étudiant.
 watch(studentId, () => (deliberationOpen.value = false))
 
-function openDeliberation(subject: TranscriptSubject, session: ExamSession) {
+function openDeliberation(subject: TranscriptSubject) {
   if (!studentId.value) return
-  deliberationTarget.value = { studentId: studentId.value, subjectId: subject.id, subjectName: subject.name, session }
+  deliberationTarget.value = { studentId: studentId.value, subjectId: subject.id, subjectName: subject.name }
   deliberationOpen.value = true
 }
 
@@ -284,16 +285,16 @@ async function exportPdf() {
                     <Badge>Délibérée</Badge>
                   </template>
                   <!-- Emplacement réservé sur chaque ligne pour que les notes restent alignées. -->
-                  <span v-if="auth.canDeliberateScores" class="w-7 shrink-0">
+                  <span v-if="auth.canDeliberateScores && cell.deliberable" class="w-7 shrink-0">
                     <Button
                       v-if="isFailingScore(cell.score) || isDeliberated(cell)"
                       variant="ghost"
                       size="icon"
                       emphasis="compact"
                       class="size-7"
-                      :aria-label="`Délibérer la note de ${subj.name}, session ${cell.session}`"
-                      :title="`Délibérer la note de ${subj.name}, session ${cell.session}`"
-                      @click="openDeliberation(subj, cell.session)"
+                      :aria-label="`Délibérer le rattrapage de ${subj.name}`"
+                      :title="`Délibérer le rattrapage de ${subj.name}`"
+                      @click="openDeliberation(subj)"
                     >
                       <GavelIcon aria-hidden="true" />
                     </Button>

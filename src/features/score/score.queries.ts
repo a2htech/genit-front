@@ -3,7 +3,7 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tansta
 import {
   deleteScore,
   deliberateScore,
-  fetchCurrentYearScore,
+  fetchCurrentYearRetakeScore,
   fetchEligibleStudents,
   fetchRetakeEligibleStudents,
   storeScoresForSubject,
@@ -59,14 +59,12 @@ export function useDeleteScoreMutation(subjectId: Ref<number | null>) {
   })
 }
 
-const currentYearScoreKey = ['scores', 'current-year'] as const
+const currentYearRetakeScoreKey = ['scores', 'current-year-retake'] as const
 
-export function useCurrentYearScoreQuery(target: Ref<DeliberationTarget | null>) {
+export function useCurrentYearRetakeScoreQuery(target: Ref<DeliberationTarget | null>) {
   return useQuery({
-    queryKey: computed(
-      () => [...currentYearScoreKey, target.value?.studentId, target.value?.subjectId, target.value?.session] as const,
-    ),
-    queryFn: () => fetchCurrentYearScore(target.value!.studentId, target.value!.subjectId, target.value!.session),
+    queryKey: computed(() => [...currentYearRetakeScoreKey, target.value?.studentId, target.value?.subjectId] as const),
+    queryFn: () => fetchCurrentYearRetakeScore(target.value!.studentId, target.value!.subjectId),
     enabled: computed(() => target.value !== null),
   })
 }
@@ -76,7 +74,7 @@ export function useDeliberateScoreMutation() {
   return useMutation({
     mutationFn: ({ id, score }: { id: number; score: number }) => deliberateScore(id, score),
     onSuccess: (score) => {
-      queryClient.invalidateQueries({ queryKey: currentYearScoreKey })
+      queryClient.invalidateQueries({ queryKey: currentYearRetakeScoreKey })
       queryClient.invalidateQueries({ queryKey: eligibleStudentsKey(score.subject_id) })
     },
   })

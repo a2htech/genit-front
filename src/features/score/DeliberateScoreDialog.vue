@@ -10,19 +10,19 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/design-system/ui/dialog'
-import { Field, FieldDescription, FieldError, FieldLabel, FieldTitle } from '@/design-system/ui/field'
+import { Field, FieldDescription, FieldError, FieldLabel } from '@/design-system/ui/field'
 import { Input } from '@/design-system/ui/input'
 import { Skeleton } from '@/design-system/ui/skeleton'
 import { apiErrorMessage } from '@/shared/api/errors'
 import { formatScore } from '@/shared/utils/format'
-import { useCurrentYearScoreQuery, useDeliberateScoreMutation } from './score.queries'
+import { useCurrentYearRetakeScoreQuery, useDeliberateScoreMutation } from './score.queries'
 import { isDeliberated, type DeliberationTarget } from './score.types'
 
 const props = defineProps<{ target: DeliberationTarget | null }>()
 const open = defineModel<boolean>('open', { required: true })
 const emit = defineEmits<{ deliberated: [] }>()
 
-const { data: score, isPending, error: loadError } = useCurrentYearScoreQuery(toRef(props, 'target'))
+const { data: score, isPending, error: loadError } = useCurrentYearRetakeScoreQuery(toRef(props, 'target'))
 const mutation = useDeliberateScoreMutation()
 
 const draft = ref<string | number>('')
@@ -69,7 +69,7 @@ function submit() {
     <DialogContent>
       <DialogHeader>
         <DialogTitle>Délibérer la note</DialogTitle>
-        <DialogDescription>{{ target?.subjectName }} · session {{ target?.session }}</DialogDescription>
+        <DialogDescription>{{ target?.subjectName }} · session de rattrapage</DialogDescription>
       </DialogHeader>
 
       <Alert v-if="errorMessage" variant="destructive">{{ errorMessage }}</Alert>
@@ -80,15 +80,19 @@ function submit() {
       </div>
       <Alert v-else-if="loadError" variant="destructive">{{ apiErrorMessage(loadError) }}</Alert>
       <Alert v-else-if="!score" variant="warning">
-        Cette note date d'une année précédente : seules les notes de l'année en cours peuvent être délibérées.
+        Ce rattrapage date d'une année précédente : seules les notes de l'année en cours peuvent être délibérées.
       </Alert>
       <form v-else id="deliberate-score-form" novalidate class="grid gap-3" @submit.prevent="submit">
         <div class="grid grid-cols-2 gap-4">
           <Field>
-            <FieldTitle>Note obtenue</FieldTitle>
-            <div class="flex h-11 items-center justify-center border-2 border-dashed border-border font-bold">
-              {{ formatScore(score.original) }}
-            </div>
+            <FieldLabel for="original-score">Note obtenue</FieldLabel>
+            <Input
+              id="original-score"
+              :model-value="formatScore(score.original)"
+              readonly
+              tabindex="-1"
+              class="border-dashed text-center font-bold"
+            />
           </Field>
           <Field>
             <FieldLabel for="deliberated-score">Note délibérée</FieldLabel>
@@ -109,23 +113,23 @@ function submit() {
         <FieldDescription id="deliberated-score-hint">
           La note obtenue reste enregistrée et s'affiche barrée sur le bulletin.
         </FieldDescription>
-      </form>
-
-      <DialogFooter>
         <Button
-          v-if="score && isDeliberated(score)"
+          v-if="isDeliberated(score)"
+          type="button"
           variant="link"
           emphasis="compact"
-          class="sm:mr-auto"
+          class="justify-self-start"
           :disabled="mutation.isPending.value"
           @click="deliberate(score.original!)"
         >
           Rétablir la note obtenue
         </Button>
+      </form>
+
+      <!-- Libellé fixe pendant l'envoi : un « Délibération… » plus long décalait le pied de la modale. -->
+      <DialogFooter>
         <Button variant="secondary" emphasis="compact" @click="open = false">Annuler</Button>
-        <Button v-if="score" type="submit" form="deliberate-score-form" :disabled="!canSubmit">
-          {{ mutation.isPending.value ? 'Délibération…' : 'Délibérer' }}
-        </Button>
+        <Button v-if="score" type="submit" form="deliberate-score-form" :disabled="!canSubmit">Délibérer</Button>
       </DialogFooter>
     </DialogContent>
   </Dialog>

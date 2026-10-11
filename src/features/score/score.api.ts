@@ -41,15 +41,16 @@ export async function deleteScore(id: number): Promise<void> {
   await apiClient.delete(`/scores/${id}`)
 }
 
-/** Année courante seulement : 404 = aucune note cette année pour cette session, donc rien à délibérer. */
-export async function fetchCurrentYearScore(
-  studentId: number,
-  subjectId: number,
-  session: ExamSession,
-): Promise<Score | null> {
+/** Année courante seulement : 404 = pas de rattrapage cette année, donc rien à délibérer. */
+export async function fetchCurrentYearRetakeScore(studentId: number, subjectId: number): Promise<Score | null> {
   try {
     const { data } = await apiClient.get<{ data: Score }>('/scores/latest', {
-      params: { student_id: studentId, subject_id: subjectId, session: SESSION_CODE[session], across_all_years: 0 },
+      params: {
+        student_id: studentId,
+        subject_id: subjectId,
+        session: SESSION_CODE.rattrapage,
+        across_all_years: 0,
+      },
     })
     return data.data
   } catch (error) {

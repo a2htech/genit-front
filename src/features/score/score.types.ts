@@ -25,12 +25,11 @@ export function isDeliberated(note: Pick<Score, 'score' | 'original'>): boolean 
   return note.original !== null && note.score !== note.original
 }
 
-/** Le bulletin n'expose pas l'id des notes : on les retrouve par étudiant, matière et session. */
+/** Seul le rattrapage se délibère ; le bulletin n'expose pas son id, on le retrouve par étudiant et matière. */
 export interface DeliberationTarget {
   studentId: number
   subjectId: number
   subjectName: string
-  session: ExamSession
 }
 
 export interface SubjectEligibleStudent {
