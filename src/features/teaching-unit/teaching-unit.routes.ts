@@ -5,5 +5,6 @@ export const teachingUnitRoutes: RouteRecordRaw[] = [
     path: '/teaching-units',
     name: 'teaching-units',
     component: () => import('./TeachingUnitListPage.vue'),
+    meta: { permission: 'curriculum.view' },
   },
 ]

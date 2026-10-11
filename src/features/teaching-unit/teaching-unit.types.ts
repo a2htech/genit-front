@@ -6,6 +6,8 @@ export interface Subject {
   credit: number
   hourly_vol: number
   teaching_unit_id: number
+  /** `clerk_id` de l'enseignant affecté, comparable à celui de `GET /user`. */
+  user_id: string | null
   created_at: string | null
   updated_at: string | null
 }

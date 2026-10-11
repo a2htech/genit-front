@@ -20,12 +20,15 @@ import { ConfirmDialog } from '@/design-system/ui/confirm-dialog'
 import { Skeleton } from '@/design-system/ui/skeleton'
 import { ToggleGroup, ToggleGroupItem } from '@/design-system/ui/toggle-group'
 import { useContextStore } from '@/features/academic-year'
+import { usePermissions } from '@/features/auth'
 import { apiErrorMessage } from '@/shared/api/errors'
 import { useDeleteSubjectMutation, useTeachingUnitsQuery, useUpdateSubjectMutation } from './teaching-unit.queries'
 import SubjectFormModal from './SubjectFormModal.vue'
 import { semestersForLevel, type Subject } from './teaching-unit.types'
 
 const context = useContextStore()
+const { can } = usePermissions()
+const canManageSubjects = computed(() => can('subjects.manage'))
 // Le contexte (niveau) est garanti par le router guard avant d'atteindre cette page.
 const semesterOptions = computed(() => semestersForLevel(context.level!))
 const semester = ref<number>(semesterOptions.value[0])
@@ -137,7 +140,7 @@ async function confirmDelete() {
             <div class="flex-1 text-sm">{{ subject.name }}</div>
             <Badge variant="accent">{{ subject.credit }} crédits</Badge>
             <div class="w-28 text-xs text-muted-foreground">{{ subject.hourly_vol }}h</div>
-            <div class="flex gap-1.5">
+            <div v-if="canManageSubjects" class="flex gap-1.5">
               <Button emphasis="compact" size="sm" @click="openSubjectForm(unit.id, subject)">Éditer</Button>
               <Button variant="destructive" emphasis="compact" size="sm" @click="deleteTarget = subject">Suppr.</Button>
             </div>
@@ -146,7 +149,7 @@ async function confirmDelete() {
             Aucune matière rattachée.
           </div>
 
-          <div class="mt-3.5 flex flex-wrap items-center gap-2.5">
+          <div v-if="canManageSubjects" class="mt-3.5 flex flex-wrap items-center gap-2.5">
             <Combobox
               v-if="availableFor(unit.id).length > 0"
               :model-value="null"

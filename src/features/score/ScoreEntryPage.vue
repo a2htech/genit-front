@@ -5,11 +5,13 @@ import { Alert } from '@/design-system/ui/alert'
 import { Badge } from '@/design-system/ui/badge'
 import { Button } from '@/design-system/ui/button'
 import { ConfirmDialog } from '@/design-system/ui/confirm-dialog'
+import { Empty, EmptyDescription, EmptyTitle } from '@/design-system/ui/empty'
 import { Input } from '@/design-system/ui/input'
 import { Skeleton, TableRowsSkeleton } from '@/design-system/ui/skeleton'
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from '@/design-system/ui/table'
 import { useContextStore, useCurrentAcademicYearQuery } from '@/features/academic-year'
-import { useTeachingUnitsQuery } from '@/features/teaching-unit'
+import { usePermissions } from '@/features/auth'
+import { useTeachingUnitsQuery, type Subject } from '@/features/teaching-unit'
 import { studentFullName, type Student } from '@/features/student'
 import { apiErrorMessage } from '@/shared/api/errors'
 import { registerUnsavedGuard } from '@/shared/lib/unsaved-changes'
@@ -25,9 +27,19 @@ const errorMessage = ref<string | null>(null)
 const { data: currentYear } = useCurrentAcademicYearQuery()
 const classYear = computed(() => currentYear.value?.year ?? null)
 
+const { me, can } = usePermissions()
+const canManageAllScores = computed(() => can('scores.manage-all'))
+// Sinon, le back refuse les notes d'une matière qui n'est pas la sienne.
+const managesScoresOf = (subject: Subject) => canManageAllScores.value || subject.user_id === me.value?.clerk_id
+
 const { data: teachingUnits, isPending } = useTeachingUnitsQuery()
-const unitsWithSubjects = computed(() => (teachingUnits.value ?? []).filter((u) => u.subjects.length > 0))
+const unitsWithSubjects = computed(() =>
+  (teachingUnits.value ?? [])
+    .map((u) => ({ ...u, subjects: u.subjects.filter(managesScoresOf) }))
+    .filter((u) => u.subjects.length > 0),
+)
 const subjects = computed(() => unitsWithSubjects.value.flatMap((u) => u.subjects))
+const hasNoSubject = computed(() => !isPending.value && subjects.value.length === 0)
 const subjectId = ref<number | null>(null)
 // Les matières valides changent avec le niveau ; sans ça, subjectId garde une valeur qui n'existe plus.
 watch(
@@ -180,7 +192,7 @@ const onDarkButtonClass =
       :pending="isPending"
     />
 
-    <div class="mb-2.5 flex items-center justify-between">
+    <div v-if="!hasNoSubject" class="mb-2.5 flex items-center justify-between">
       <div class="text-sm font-bold">
         <span v-if="currentUnit" class="text-muted-foreground">{{ currentUnit.code }} — {{ currentUnit.name }}</span>
         <span v-if="currentUnit" class="mx-1.5 text-muted-foreground">›</span>
@@ -198,7 +210,14 @@ const onDarkButtonClass =
       Une note doit être comprise entre 0 et 20. Corrigez les valeurs signalées avant d'enregistrer.
     </Alert>
 
-    <Table class="mb-24">
+    <Empty v-if="hasNoSubject" class="mb-24">
+      <EmptyTitle>Aucune matière à saisir en {{ context.level }}</EmptyTitle>
+      <EmptyDescription v-if="!canManageAllScores">
+        Seules les matières qui vous sont affectées apparaissent ici.
+      </EmptyDescription>
+    </Empty>
+
+    <Table v-else class="mb-24">
       <TableHeader>
         <TableRow>
           <TableHead>Étudiant</TableHead>

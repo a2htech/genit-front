@@ -1,3 +1,5 @@
 export { authRoutes } from './auth.routes'
 export { useAuthStore } from './auth.store'
 export { clerkAppearance } from './auth.appearance'
+export { meQueryOptions, usePermissions } from './auth.queries'
+export type { Permission, Role } from './auth.types'

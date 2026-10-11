@@ -13,29 +13,32 @@ import {
 } from '@/design-system/ui/dropdown-menu'
 import { FullPageLoader } from '@/design-system/ui/full-page-loader'
 import { LEVELS, useContextStore, useCurrentAcademicYearQuery, type Level } from '@/features/academic-year'
-import { useAuthStore } from '@/features/auth'
+import { useAuthStore, usePermissions, type Permission } from '@/features/auth'
 import { discardUnsavedChanges, hasUnsavedChanges } from '@/shared/lib/unsaved-changes'
 import { formatAcademicYear } from '@/shared/utils/format'
 
 const route = useRoute()
 const context = useContextStore()
 const auth = useAuthStore()
+const { can, hasAccess } = usePermissions()
 const { data: currentYear } = useCurrentAcademicYearQuery()
 
 const showChrome = computed(() => route.meta.requiresContext !== false)
 
 /** Une page de détail (ex. la fiche étudiant) garde l'onglet de sa liste actif via `meta.nav`. */
-const activeNav = computed(() => (route.meta.nav as string | undefined) ?? route.name)
+const activeNav = computed(() => route.meta.nav ?? route.name)
 
 const academicYearLabel = computed(() => (currentYear.value ? formatAcademicYear(currentYear.value.year) : null))
 
-const navItems: { name: string; label: string }[] = [
-  { name: 'students', label: 'Étudiants' },
-  { name: 'teaching-units', label: 'UE' },
-  { name: 'scores', label: 'Notes' },
-  { name: 'decisions', label: 'Résultats' },
-  { name: 'academic-year', label: 'Année' },
+// Même permission que la route : une entrée visible ne mène jamais à « Accès refusé ».
+const navItems: { name: string; label: string; permission: Permission }[] = [
+  { name: 'students', label: 'Étudiants', permission: 'students.view' },
+  { name: 'teaching-units', label: 'UE', permission: 'curriculum.view' },
+  { name: 'scores', label: 'Notes', permission: 'scores.manage-own' },
+  { name: 'decisions', label: 'Résultats', permission: 'results.view' },
+  { name: 'academic-year', label: 'Année', permission: 'academic-years.manage' },
 ]
+const visibleNavItems = computed(() => navItems.filter((item) => can(item.permission)))
 
 /** Niveau demandé alors que la page a des modifications non enregistrées : attend la confirmation. */
 const pendingLevel = ref<Level | null>(null)
@@ -71,7 +74,7 @@ function confirmLevelChange() {
         <span class="h-6 w-1 shrink-0 bg-foreground" />
         <nav class="flex flex-1 gap-1 overflow-x-auto">
           <RouterLink
-            v-for="item in navItems"
+            v-for="item in visibleNavItems"
             :key="item.name"
             :to="{ name: item.name }"
             class="border-b-4 px-3.5 py-2.5 text-sm font-bold whitespace-nowrap no-underline transition-colors duration-100"
@@ -91,7 +94,7 @@ function confirmLevelChange() {
             <span class="text-[10px] font-bold tracking-wide uppercase">AU</span> {{ academicYearLabel }}
           </span>
 
-          <DropdownMenu>
+          <DropdownMenu v-if="hasAccess">
             <DropdownMenuTrigger
               class="flex items-center gap-1.5 border-2 border-border bg-primary px-3 py-1.5 text-xs font-bold whitespace-nowrap text-primary-foreground shadow-brutal-sm transition-transform duration-100 hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-none"
             >

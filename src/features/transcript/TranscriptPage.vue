@@ -19,7 +19,7 @@ import { Empty, EmptyDescription, EmptyTitle } from '@/design-system/ui/empty'
 import { Skeleton } from '@/design-system/ui/skeleton'
 import { ToggleGroup, ToggleGroupItem } from '@/design-system/ui/toggle-group'
 import { LEVELS, useContextStore, type Level } from '@/features/academic-year'
-import { useAuthStore } from '@/features/auth'
+import { usePermissions } from '@/features/auth'
 import { DeliberateScoreDialog, isDeliberated, type DeliberationTarget } from '@/features/score'
 import {
   DEFAULT_STUDENT_SORT,
@@ -37,7 +37,8 @@ import { MENTION_LABEL_FR, STATUS_LABEL_FR, type AcademicStatusLabel, type Trans
 const route = useRoute()
 const router = useRouter()
 const context = useContextStore()
-const auth = useAuthStore()
+const { can } = usePermissions()
+const canDeliberate = computed(() => can('scores.deliberate'))
 
 const studentId = computed(() => {
   const raw = route.params.studentId as string | undefined
@@ -285,7 +286,7 @@ async function exportPdf() {
                     <Badge>Délibérée</Badge>
                   </template>
                   <!-- Emplacement réservé sur chaque ligne pour que les notes restent alignées. -->
-                  <span v-if="auth.canDeliberateScores && cell.deliberable" class="w-7 shrink-0">
+                  <span v-if="canDeliberate && cell.deliberable" class="w-7 shrink-0">
                     <Button
                       v-if="isFailingScore(cell.score) || isDeliberated(cell)"
                       variant="ghost"
@@ -334,7 +335,7 @@ async function exportPdf() {
   </div>
 
   <DeliberateScoreDialog
-    v-if="auth.canDeliberateScores"
+    v-if="canDeliberate"
     v-model:open="deliberationOpen"
     :target="deliberationTarget"
     @deliberated="invalidateTranscripts"

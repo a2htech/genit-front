@@ -5,5 +5,6 @@ export const scoreRoutes: RouteRecordRaw[] = [
     path: '/scores',
     name: 'scores',
     component: () => import('./ScoreEntryPage.vue'),
+    meta: { permission: 'scores.manage-own' },
   },
 ]

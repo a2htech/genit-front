@@ -1,4 +1,5 @@
 import type { Level } from '@/features/academic-year'
+import type { Role } from '@/features/auth'
 import type { AcademicStatusCode } from '@/features/student'
 
 export interface DashboardAcademicYear {
@@ -30,22 +31,22 @@ export interface DashboardScores {
   retakeRate: number
 }
 
-export interface UserDashboard {
-  role: 'user'
+export interface MinimalDashboard {
+  role: Role
   /** null tant qu'aucune année universitaire n'est configurée côté back. */
   academicYear: DashboardAcademicYear | null
   students: DashboardStudents
   catalog: DashboardCatalog
 }
 
-export interface AdminDashboard extends Omit<UserDashboard, 'role'> {
-  role: 'admin'
+export interface FullDashboard extends MinimalDashboard {
   annualResults: DashboardAnnualResults
   scores: DashboardScores
 }
 
-export type Dashboard = UserDashboard | AdminDashboard
+export type Dashboard = MinimalDashboard | FullDashboard
 
-export function isAdminDashboard(dashboard: Dashboard): dashboard is AdminDashboard {
-  return dashboard.role === 'admin'
+/** Le back choisit la version selon `dashboard.view-full` : on lit la forme reçue, pas le rôle. */
+export function isFullDashboard(dashboard: Dashboard): dashboard is FullDashboard {
+  return 'scores' in dashboard
 }

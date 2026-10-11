@@ -8,6 +8,7 @@ import { Button } from '@/design-system/ui/button'
 import { ConfirmDialog } from '@/design-system/ui/confirm-dialog'
 import { Empty, EmptyDescription, EmptyTitle } from '@/design-system/ui/empty'
 import { Skeleton } from '@/design-system/ui/skeleton'
+import { usePermissions } from '@/features/auth'
 import { apiErrorMessage } from '@/shared/api/errors'
 import { formatAcademicYear, formatDate } from '@/shared/utils/format'
 import StudentFormModal from './StudentFormModal.vue'
@@ -16,6 +17,7 @@ import { ACADEMIC_STATUS_VARIANTS, SEX_LABELS, STUDENT_STATE_LABELS, studentFull
 
 const route = useRoute()
 const router = useRouter()
+const { can } = usePermissions()
 
 const studentId = computed(() => {
   const raw = route.params.studentId as string | undefined
@@ -143,13 +145,17 @@ async function confirmDelete() {
         </div>
 
         <div class="mt-6 flex flex-wrap gap-2">
-          <Button variant="secondary" @click="formOpen = true"><PencilIcon /> Éditer</Button>
+          <Button v-if="can('students.manage')" variant="secondary" @click="formOpen = true">
+            <PencilIcon /> Éditer
+          </Button>
           <Button variant="secondary" as-child>
             <RouterLink :to="{ name: 'transcript', params: { studentId: student.id } }">
               <FileTextIcon /> Voir le bulletin
             </RouterLink>
           </Button>
-          <Button variant="destructive" @click="askDelete"><Trash2Icon /> Supprimer</Button>
+          <Button v-if="can('students.manage')" variant="destructive" @click="askDelete">
+            <Trash2Icon /> Supprimer
+          </Button>
         </div>
       </div>
 
