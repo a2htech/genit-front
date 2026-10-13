@@ -1,16 +1,20 @@
-import { computed } from 'vue'
+import { computed, toValue, type MaybeRefOrGetter } from 'vue'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
-import { useContextStore } from '@/features/academic-year'
+import { useContextStore, type Level } from '@/features/academic-year'
 import { createSubject, deleteSubject, fetchTeachingUnits, updateSubject } from './teaching-unit.api'
 import type { SubjectFormValues, SubjectUpdatePayload } from './teaching-unit.types'
 
+/** Préfixe commun à tous les niveaux, pour invalider le programme en entier. */
+export const allTeachingUnitsKey = ['teaching-units'] as const
+
 function teachingUnitsKey(level: string | null) {
-  return ['teaching-units', level] as const
+  return [...allTeachingUnitsKey, level] as const
 }
 
-export function useTeachingUnitsQuery() {
+/** Sans niveau, celui consulté dans l'en-tête. */
+export function useTeachingUnitsQuery(levelSource?: MaybeRefOrGetter<Level>) {
   const context = useContextStore()
-  const level = computed(() => context.level)
+  const level = computed(() => (levelSource ? toValue(levelSource) : context.level))
   return useQuery({
     queryKey: computed(() => teachingUnitsKey(level.value)),
     queryFn: () => fetchTeachingUnits(level.value!),
