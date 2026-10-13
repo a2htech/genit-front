@@ -50,6 +50,7 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits)
     :class="
       cn(
         'group/toggle-group flex w-fit flex-row items-center gap-[--spacing(var(--gap))] rounded-lg data-[size=sm]:rounded-[min(var(--radius-md),10px)] data-vertical:flex-col data-vertical:items-stretch',
+        'data-[variant=segmented]:gap-0.5 data-[variant=segmented]:border-2 data-[variant=segmented]:border-border data-[variant=segmented]:bg-muted data-[variant=segmented]:p-0.5 data-[variant=segmented]:shadow-brutal-sm',
         props.class,
       )
     "

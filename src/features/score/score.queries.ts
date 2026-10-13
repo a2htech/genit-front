@@ -2,12 +2,15 @@ import { type Ref, computed } from 'vue'
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import {
   deleteScore,
+  deliberateScore,
+  fetchCurrentYearRetakeScore,
   fetchEligibleStudents,
   fetchRetakeEligibleStudents,
   storeScoresForSubject,
   updateScore,
   type StoreScoresPayload,
 } from './score.api'
+import type { DeliberationTarget } from './score.types'
 
 function eligibleStudentsKey(subjectId: number | null) {
   return ['subjects', subjectId, 'eligible-students'] as const
@@ -53,5 +56,26 @@ export function useDeleteScoreMutation(subjectId: Ref<number | null>) {
   return useMutation({
     mutationFn: (id: number) => deleteScore(id),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: eligibleStudentsKey(subjectId.value) }),
+  })
+}
+
+const currentYearRetakeScoreKey = ['scores', 'current-year-retake'] as const
+
+export function useCurrentYearRetakeScoreQuery(target: Ref<DeliberationTarget | null>) {
+  return useQuery({
+    queryKey: computed(() => [...currentYearRetakeScoreKey, target.value?.studentId, target.value?.subjectId] as const),
+    queryFn: () => fetchCurrentYearRetakeScore(target.value!.studentId, target.value!.subjectId),
+    enabled: computed(() => target.value !== null),
+  })
+}
+
+export function useDeliberateScoreMutation() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, score }: { id: number; score: number }) => deliberateScore(id, score),
+    onSuccess: (score) => {
+      queryClient.invalidateQueries({ queryKey: currentYearRetakeScoreKey })
+      queryClient.invalidateQueries({ queryKey: eligibleStudentsKey(score.subject_id) })
+    },
   })
 }

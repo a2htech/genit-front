@@ -11,5 +11,6 @@ export const academicYearRoutes: RouteRecordRaw[] = [
     path: '/academic-year',
     name: 'academic-year',
     component: () => import('./AcademicYearPage.vue'),
+    meta: { permission: 'academic-years.manage' },
   },
 ]

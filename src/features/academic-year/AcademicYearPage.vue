@@ -56,23 +56,33 @@ const calculateButtonLabel = computed(() => {
 
 const { data: summary, isPending: summaryPending } = useAnnualResultsSummaryQuery()
 
-const STATUS_COLOR_CLASS: Record<AcademicStatusCode, string> = {
+type SummaryKey = AcademicStatusCode | 'expired'
+
+const SUMMARY_COLOR_CLASS: Record<SummaryKey, string> = {
   P: 'bg-success',
   C: 'bg-warning',
   R: 'bg-destructive',
   T: 'bg-accent',
+  expired: 'bg-critical',
 }
+
+// « Exclu(e) » : même libellé que la page Résultats.
+const SUMMARY_LABELS: Record<SummaryKey, string> = { ...ACADEMIC_STATUS_LABELS, expired: 'Exclu(e)' }
 
 const summaryRows = computed(() =>
   LEVELS.map(({ value: level }) => {
-    const counts = summary.value?.[level] ?? { P: 0, C: 0, R: 0, T: 0 }
-    const total = counts.P + counts.C + counts.R + counts.T
-    const segments = ACADEMIC_STATUS_CODES.filter((status) => isDecisionApplicable(status, level)).map((status) => ({
-      status,
-      label: ACADEMIC_STATUS_LABELS[status],
-      count: counts[status],
-      percent: total > 0 ? (counts[status] / total) * 100 : 0,
-      colorClass: STATUS_COLOR_CLASS[status],
+    const counts = summary.value?.[level] ?? { P: 0, C: 0, R: 0, T: 0, expired: 0 }
+    const total = counts.P + counts.C + counts.R + counts.T + counts.expired
+    const keys: SummaryKey[] = [
+      ...ACADEMIC_STATUS_CODES.filter((status) => isDecisionApplicable(status, level)),
+      'expired',
+    ]
+    const segments = keys.map((key) => ({
+      key,
+      label: SUMMARY_LABELS[key],
+      count: counts[key],
+      percent: total > 0 ? (counts[key] / total) * 100 : 0,
+      colorClass: SUMMARY_COLOR_CLASS[key],
     }))
     return { level, total, segments }
   }),
@@ -172,7 +182,7 @@ async function confirmSwitch() {
           <div class="mb-3 flex h-3 w-full overflow-hidden border-2 border-border" aria-hidden="true">
             <div
               v-for="seg in row.segments"
-              :key="seg.status"
+              :key="seg.key"
               :class="seg.colorClass"
               class="h-full border-l-2 border-border first:border-l-0"
               :style="{ width: `${seg.percent}%` }"
@@ -182,7 +192,7 @@ async function confirmSwitch() {
           <ul class="space-y-1.5">
             <li
               v-for="seg in row.segments"
-              :key="seg.status"
+              :key="seg.key"
               class="flex items-center justify-between gap-2 text-xs font-semibold"
             >
               <span class="flex items-center gap-1.5">

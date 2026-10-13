@@ -11,6 +11,7 @@ import { Skeleton, StatCardSkeleton, TableRowsSkeleton } from '@/design-system/u
 import { Table, TableBody, TableCell, TableEmpty, TableHead, TableHeader, TableRow } from '@/design-system/ui/table'
 import { ToggleGroup, ToggleGroupItem } from '@/design-system/ui/toggle-group'
 import { useContextStore } from '@/features/academic-year'
+import { usePermissions } from '@/features/auth'
 import {
   ACADEMIC_STATUS_CODES,
   ACADEMIC_STATUS_LABELS,
@@ -25,6 +26,7 @@ import { isDecisionApplicable } from './transcript.types'
 
 const router = useRouter()
 const context = useContextStore()
+const { can } = usePermissions()
 const errorMessage = ref<string | null>(null)
 
 const { data: annualResults, isPending: resultsPending } = useAnnualResultsQuery()
@@ -75,7 +77,12 @@ function openTranscript(studentId: number) {
   <div>
     <div class="mb-5 flex flex-wrap items-center justify-between gap-4">
       <h1 class="font-heading text-2xl font-extrabold">Résultats — {{ context.level }}</h1>
-      <Button variant="secondary" :disabled="calculateMutation.isPending.value" @click="recalculate">
+      <Button
+        v-if="can('results.calculate')"
+        variant="secondary"
+        :disabled="calculateMutation.isPending.value"
+        @click="recalculate"
+      >
         {{ calculateMutation.isPending.value ? 'Calcul en cours…' : 'Recalculer les résultats' }}
       </Button>
     </div>
@@ -111,8 +118,11 @@ function openTranscript(studentId: number) {
     <template v-else>
       <Empty v-if="(annualResults ?? []).length === 0">
         <EmptyTitle>Aucun résultat calculé</EmptyTitle>
-        <EmptyDescription>
+        <EmptyDescription v-if="can('results.calculate')">
           Cliquez sur « Recalculer les résultats » pour générer les décisions annuelles de cette classe.
+        </EmptyDescription>
+        <EmptyDescription v-else>
+          Les décisions annuelles de cette classe n'ont pas encore été calculées.
         </EmptyDescription>
       </Empty>
 

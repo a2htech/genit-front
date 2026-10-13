@@ -1,2 +1,2 @@
 export { useDashboardQuery } from './dashboard.queries'
-export { isAdminDashboard } from './dashboard.types'
+export { isFullDashboard } from './dashboard.types'

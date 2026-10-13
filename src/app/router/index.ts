@@ -1,11 +1,13 @@
 import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
 
+import { queryClient } from '@/app/plugins/query'
 import { academicYearRoutes, useContextStore } from '@/features/academic-year'
-import { authRoutes, useAuthStore } from '@/features/auth'
+import { authRoutes, meQueryOptions, useAuthStore } from '@/features/auth'
 import { transcriptRoutes } from '@/features/transcript'
 import { studentRoutes } from '@/features/student'
 import { teachingUnitRoutes } from '@/features/teaching-unit'
 import { scoreRoutes } from '@/features/score'
+import { userRoutes } from '@/features/user'
 
 const routes: RouteRecordRaw[] = [
   {
@@ -25,6 +27,7 @@ const routes: RouteRecordRaw[] = [
   ...teachingUnitRoutes,
   ...scoreRoutes,
   ...transcriptRoutes,
+  ...userRoutes,
   ...(import.meta.env.DEV
     ? [
         {
@@ -47,6 +50,11 @@ router.beforeEach(async (to) => {
     const auth = useAuthStore()
     await auth.waitUntilLoaded()
     if (!auth.isSignedIn) return { name: 'sign-in' }
+
+    const { permissions } = await queryClient.ensureQueryData(meQueryOptions)
+    // Sans permission, seul le dashboard minimal est ouvert, et le niveau n'y sert à rien.
+    if (permissions.length === 0) return to.name === 'dashboard' ? true : { name: 'dashboard' }
+    if (to.meta.permission && !permissions.includes(to.meta.permission)) return { name: 'dashboard' }
   }
 
   if (to.meta.requiresContext === false) return true

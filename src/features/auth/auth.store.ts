@@ -1,12 +1,19 @@
 import { defineStore } from 'pinia'
-import { useAuth } from '@clerk/vue'
-import { computed, watch } from 'vue'
+import { useAuth, useUser } from '@clerk/vue'
+import { watch } from 'vue'
+
+const SCHOOL_ORGANIZATION_ID = import.meta.env.VITE_CLERK_ORGANIZATION_ID
 
 export const useAuthStore = defineStore('auth', () => {
-  const { isSignedIn, isLoaded, orgRole, signOut } = useAuth()
+  const { isSignedIn, isLoaded, getToken, signOut } = useAuth()
+  const { user } = useUser()
 
-  // Même source que le back, qui déduit le rôle admin de l'org_role Clerk.
-  const isAdmin = computed(() => orgRole.value === 'org:admin')
+  /** Le back ne lit le rôle que dans l'org de l'école : un membre la vise, sans changer son org active. */
+  async function getApiToken(): Promise<string | null> {
+    await waitUntilLoaded()
+    const isMember = user.value?.organizationMemberships.some((m) => m.organization.id === SCHOOL_ORGANIZATION_ID)
+    return getToken.value(isMember ? { organizationId: SCHOOL_ORGANIZATION_ID } : undefined)
+  }
 
   /** Le guard de route doit attendre l'hydratation de la session Clerk avant de trancher. */
   function waitUntilLoaded(): Promise<void> {
@@ -21,5 +28,5 @@ export const useAuthStore = defineStore('auth', () => {
     })
   }
 
-  return { isSignedIn, isLoaded, isAdmin, signOut, waitUntilLoaded }
+  return { isSignedIn, isLoaded, signOut, waitUntilLoaded, getApiToken }
 })

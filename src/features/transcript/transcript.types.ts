@@ -101,7 +101,8 @@ export function isDecisionApplicable(status: AcademicStatusCode, level: Level): 
   return true
 }
 
-/** Nombre de décisions par statut (P/C/R/T), pour une classe, sur l'année courante. */
-export type DecisionCounts = Record<AcademicStatusCode, number>
+/** Nombre de décisions par statut, pour une classe, sur l'année courante. Les exclus sont
+ *  comptés dans `expired`, jamais dans R. */
+export type DecisionCounts = Record<AcademicStatusCode | 'expired', number>
 
 export type AnnualResultsSummary = Record<Level, DecisionCounts>

@@ -1,18 +1,21 @@
 import { createApp, watch } from 'vue'
-import { createPinia } from 'pinia'
-import { clerkPlugin, useAuth } from '@clerk/vue'
+import { createPinia, storeToRefs } from 'pinia'
+import { clerkPlugin } from '@clerk/vue'
 
 import App from './App.vue'
 import router from '@/app/router'
 import { VueQueryPlugin, queryClient } from '@/app/plugins/query'
 import { currentAcademicYearKey, useContextStore } from '@/features/academic-year'
-import { clerkAppearance } from '@/features/auth'
+import { clerkAppearance, useAuthStore } from '@/features/auth'
 import { setAuthTokenProvider, setUnauthorizedHandler } from '@/shared/api/client'
 import '@/app/styles/main.css'
 
 const CLERK_PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY
 if (!CLERK_PUBLISHABLE_KEY) {
   throw new Error('VITE_CLERK_PUBLISHABLE_KEY manquante dans .env')
+}
+if (!import.meta.env.VITE_CLERK_ORGANIZATION_ID) {
+  throw new Error('VITE_CLERK_ORGANIZATION_ID manquante dans .env')
 }
 
 function bootstrap() {
@@ -27,9 +30,10 @@ function bootstrap() {
     signUpUrl: import.meta.env.VITE_CLERK_SIGN_UP_URL,
   })
 
-  // useAuth() injects from the plugin's provide(), so it needs runWithContext outside a component.
-  const { getToken, isSignedIn } = app.runWithContext(() => useAuth())
-  setAuthTokenProvider(() => getToken.value())
+  // The store calls Clerk's useAuth(), which injects from the plugin: runWithContext outside a component.
+  const auth = app.runWithContext(() => useAuthStore(pinia))
+  const { isSignedIn } = storeToRefs(auth)
+  setAuthTokenProvider(auth.getApiToken)
   setUnauthorizedHandler(() => router.push({ name: 'unauthorized' }))
 
   watch(isSignedIn, (signedIn, wasSignedIn) => {

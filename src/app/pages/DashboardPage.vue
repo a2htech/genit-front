@@ -4,12 +4,14 @@ import {
   AlertTriangleIcon,
   ClipboardCheckIcon,
   HourglassIcon,
+  InfoIcon,
   LayersIcon,
   NotebookTextIcon,
   RotateCcwIcon,
   TrendingUpIcon,
   UsersIcon,
 } from '@lucide/vue'
+import { Alert, AlertDescription, AlertTitle } from '@/design-system/ui/alert'
 import { Badge } from '@/design-system/ui/badge'
 import { Button } from '@/design-system/ui/button'
 import { Card } from '@/design-system/ui/card'
@@ -17,22 +19,24 @@ import { BarChart, StackedBar } from '@/design-system/ui/chart'
 import { Skeleton, StatCardSkeleton } from '@/design-system/ui/skeleton'
 import { StatTile } from '@/design-system/ui/stat-tile'
 import { LEVELS } from '@/features/academic-year'
-import { isAdminDashboard, useDashboardQuery } from '@/features/dashboard'
+import { usePermissions } from '@/features/auth'
+import { isFullDashboard, useDashboardQuery } from '@/features/dashboard'
 import { ACADEMIC_STATUS_CODES, ACADEMIC_STATUS_LABELS, ACADEMIC_STATUS_VARIANTS } from '@/features/student'
 import { formatNumber } from '@/shared/utils/format'
 
 const { data, isPending } = useDashboardQuery()
+const { can, hasAccess } = usePermissions()
 
-const admin = computed(() => (data.value && isAdminDashboard(data.value) ? data.value : null))
+const full = computed(() => (data.value && isFullDashboard(data.value) ? data.value : null))
 
-const averageScore = computed(() => admin.value?.scores.averageScore ?? null)
+const averageScore = computed(() => full.value?.scores.averageScore ?? null)
 
 const studentsByClass = computed(() =>
   LEVELS.map((level) => ({ label: level.value, value: data.value?.students.byClass[level.value] ?? 0 })),
 )
 
 const statusSegments = computed(() => {
-  const byStatus = admin.value?.annualResults.byStatus
+  const byStatus = full.value?.annualResults.byStatus
   if (!byStatus) return []
   return ACADEMIC_STATUS_CODES.map((code) => ({
     key: code,
@@ -49,6 +53,15 @@ const statusSegments = computed(() => {
       <h1 class="text-center font-heading text-2xl font-extrabold">Tableau de bord</h1>
       <Badge v-if="data?.academicYear" variant="outline">Année {{ data.academicYear.year }}</Badge>
     </div>
+
+    <Alert v-if="!hasAccess" class="mb-6">
+      <InfoIcon aria-hidden="true" />
+      <AlertTitle>Votre compte n'a pas encore d'accès</AlertTitle>
+      <AlertDescription>
+        Les compteurs ci-dessous sont publics. Pour saisir des notes ou consulter les dossiers, demandez à
+        l'administration de vous attribuer un rôle.
+      </AlertDescription>
+    </Alert>
 
     <div class="mb-6 grid grid-cols-1 gap-4.5 sm:grid-cols-3">
       <template v-if="isPending">
@@ -72,9 +85,9 @@ const statusSegments = computed(() => {
       <BarChart v-else :data="studentsByClass" />
     </Card>
 
-    <template v-if="admin">
+    <template v-if="full">
       <div class="mb-6 grid grid-cols-1 gap-4.5 sm:grid-cols-2 lg:grid-cols-5">
-        <StatTile label="Notes saisies" :value="formatNumber(admin.scores.totalEntered)" :icon="ClipboardCheckIcon" />
+        <StatTile label="Notes saisies" :value="formatNumber(full.scores.totalEntered)" :icon="ClipboardCheckIcon" />
         <StatTile
           label="Moyenne générale"
           :value="averageScore === null ? '—' : `${averageScore.toFixed(1)}/20`"
@@ -83,23 +96,23 @@ const statusSegments = computed(() => {
         />
         <StatTile
           label="Taux de redoublement"
-          :value="`${Math.round(admin.scores.retakeRate * 100)}%`"
+          :value="`${Math.round(full.scores.retakeRate * 100)}%`"
           :icon="RotateCcwIcon"
-          :progress="admin.scores.retakeRate * 100"
+          :progress="full.scores.retakeRate * 100"
         />
         <StatTile
           label="Résultats en attente"
-          :value="formatNumber(admin.annualResults.pending)"
+          :value="formatNumber(full.annualResults.pending)"
           :icon="HourglassIcon"
-          :variant="admin.annualResults.pending > 0 ? 'warning' : 'default'"
-          :hint="admin.annualResults.pending > 0 ? 'à calculer' : 'à jour'"
+          :variant="full.annualResults.pending > 0 ? 'warning' : 'default'"
+          :hint="full.annualResults.pending > 0 ? 'à calculer' : 'à jour'"
         />
         <StatTile
           label="Cumuls expirés"
-          :value="formatNumber(admin.annualResults.expiredCumul)"
+          :value="formatNumber(full.annualResults.expiredCumul)"
           :icon="AlertTriangleIcon"
           variant="warning"
-          :hint="admin.annualResults.expiredCumul > 0 ? 'à régulariser' : undefined"
+          :hint="full.annualResults.expiredCumul > 0 ? 'à régulariser' : undefined"
         />
       </div>
 
@@ -107,7 +120,7 @@ const statusSegments = computed(() => {
         <div class="mb-4">
           <div class="font-heading text-lg font-extrabold">Résultats annuels par statut</div>
           <div class="text-sm text-muted-foreground">
-            {{ formatNumber(admin.annualResults.calculated) }} résultats calculés.
+            {{ formatNumber(full.annualResults.calculated) }} résultats calculés.
           </div>
         </div>
         <StackedBar :segments="statusSegments" />
@@ -115,11 +128,13 @@ const statusSegments = computed(() => {
     </template>
 
     <div class="flex flex-wrap gap-3.5">
-      <Button variant="secondary" as-child><RouterLink :to="{ name: 'scores' }">Saisir des notes</RouterLink></Button>
-      <Button variant="secondary" as-child>
+      <Button v-if="can('scores.manage-own')" variant="secondary" as-child>
+        <RouterLink :to="{ name: 'scores' }">Saisir des notes</RouterLink>
+      </Button>
+      <Button v-if="can('students.view')" variant="secondary" as-child>
         <RouterLink :to="{ name: 'students' }">Gérer les étudiants</RouterLink>
       </Button>
-      <Button variant="secondary" as-child>
+      <Button v-if="can('results.view')" variant="secondary" as-child>
         <RouterLink :to="{ name: 'decisions' }">Voir les résultats</RouterLink>
       </Button>
     </div>
