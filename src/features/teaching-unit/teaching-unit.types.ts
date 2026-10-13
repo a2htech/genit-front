@@ -8,6 +8,8 @@ export interface Subject {
   teaching_unit_id: number
   /** `clerk_id` de l'enseignant affecté, comparable à celui de `GET /user`. */
   user_id: string | null
+  /** Nom lu dans Clerk par le back ; champs `null` si Clerk n'a pas répondu. */
+  teacher: { first_name: string | null; last_name: string | null } | null
   created_at: string | null
   updated_at: string | null
 }
@@ -31,6 +33,11 @@ export interface SubjectFormValues {
 }
 
 export type SubjectUpdatePayload = Partial<SubjectFormValues>
+
+export function teacherLabel({ teacher }: Subject): string {
+  if (!teacher) return 'Aucun enseignant'
+  return `${teacher.first_name ?? ''} ${teacher.last_name ?? ''}`.trim() || 'Enseignant inconnu'
+}
 
 /** SemesterEnum::allowedSemesters côté back : le semestre est numéroté sur tout le cursus (1..10), pas juste S1/S2. */
 export function semestersForLevel(level: Level): [number, number] {
