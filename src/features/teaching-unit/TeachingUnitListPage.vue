@@ -24,7 +24,7 @@ import { usePermissions } from '@/features/auth'
 import { apiErrorMessage } from '@/shared/api/errors'
 import { useDeleteSubjectMutation, useTeachingUnitsQuery, useUpdateSubjectMutation } from './teaching-unit.queries'
 import SubjectFormModal from './SubjectFormModal.vue'
-import { semestersForLevel, type Subject } from './teaching-unit.types'
+import { semestersForLevel, teacherLabel, type Subject } from './teaching-unit.types'
 
 const context = useContextStore()
 const { can } = usePermissions()
@@ -138,6 +138,9 @@ async function confirmDelete() {
           >
             <div class="h-5.5 w-1 bg-foreground" />
             <div class="flex-1 text-sm">{{ subject.name }}</div>
+            <div class="w-44 truncate text-xs" :class="subject.teacher ? 'font-semibold' : 'text-muted-foreground'">
+              {{ teacherLabel(subject) }}
+            </div>
             <Badge variant="accent">{{ subject.credit }} crédits</Badge>
             <div class="w-28 text-xs text-muted-foreground">{{ subject.hourly_vol }}h</div>
             <div v-if="canManageSubjects" class="flex gap-1.5">
