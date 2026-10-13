@@ -114,6 +114,10 @@ const confirmOpen = ref(false)
         <ToggleGroupItem value="a">Normale</ToggleGroupItem>
         <ToggleGroupItem value="b">Rattrapage</ToggleGroupItem>
       </ToggleGroup>
+      <ToggleGroup v-model="toggle" type="single" variant="segmented" size="sm" class="mt-3">
+        <ToggleGroupItem value="a">Normale</ToggleGroupItem>
+        <ToggleGroupItem value="b">Rattrapage</ToggleGroupItem>
+      </ToggleGroup>
     </section>
 
     <section class="mb-8">

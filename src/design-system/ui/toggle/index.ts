@@ -10,6 +10,8 @@ export const toggleVariants = cva(
       variant: {
         default: 'bg-card hover:bg-muted',
         outline: 'border-2 border-input bg-card hover:bg-muted',
+        segmented:
+          'text-foreground/70 hover:text-foreground data-[state=on]:bg-foreground data-[state=on]:text-background',
       },
       size: {
         default: 'h-11 min-w-11 px-3.5',

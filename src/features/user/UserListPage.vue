@@ -171,7 +171,8 @@ async function save() {
             <ToggleGroup
               :model-value="level"
               type="single"
-              variant="outline"
+              variant="segmented"
+              size="sm"
               @update:model-value="(v) => v && (level = v as Level)"
             >
               <ToggleGroupItem v-for="l in LEVELS" :key="l.value" :value="l.value">{{ l.value }}</ToggleGroupItem>
