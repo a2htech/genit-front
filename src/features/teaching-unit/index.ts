@@ -1,3 +1,3 @@
 export { teachingUnitRoutes } from './teaching-unit.routes'
-export { useTeachingUnitsQuery } from './teaching-unit.queries'
-export type { Subject, TeachingUnit } from './teaching-unit.types'
+export { allTeachingUnitsKey, useTeachingUnitsQuery } from './teaching-unit.queries'
+export { teacherLabel, type Subject, type TeachingUnit } from './teaching-unit.types'

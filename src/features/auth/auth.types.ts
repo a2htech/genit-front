@@ -14,6 +14,7 @@ export type Permission =
   | 'scores.manage-own'
   | 'scores.manage-all'
   | 'scores.deliberate'
+  | 'users.manage'
 
 export type Role = 'admin' | 'coordinator' | 'teacher' | 'user'
 

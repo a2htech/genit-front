@@ -3,6 +3,7 @@ import { ref } from 'vue'
 import { Alert } from '@/design-system/ui/alert'
 import { Badge } from '@/design-system/ui/badge'
 import { Button } from '@/design-system/ui/button'
+import { Checkbox } from '@/design-system/ui/checkbox'
 import { ConfirmDialog } from '@/design-system/ui/confirm-dialog'
 import { Empty, EmptyDescription, EmptyTitle } from '@/design-system/ui/empty'
 import { Field, FieldGroup, FieldLabel } from '@/design-system/ui/field'
@@ -28,6 +29,7 @@ import {
 const text = ref('')
 const select = ref('a')
 const toggle = ref('a')
+const checked = ref(true)
 const page = ref(1)
 const confirmOpen = ref(false)
 </script>
@@ -112,6 +114,14 @@ const confirmOpen = ref(false)
         <ToggleGroupItem value="a">Normale</ToggleGroupItem>
         <ToggleGroupItem value="b">Rattrapage</ToggleGroupItem>
       </ToggleGroup>
+    </section>
+
+    <section class="mb-8">
+      <h2 class="mb-3 font-heading text-base font-extrabold">Checkbox</h2>
+      <div class="flex items-center gap-6 text-sm">
+        <label class="flex items-center gap-2"><Checkbox v-model="checked" /> Cochée / décochée</label>
+        <label class="flex items-center gap-2"><Checkbox disabled /> Désactivée</label>
+      </div>
     </section>
 
     <section class="mb-8">

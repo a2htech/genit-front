@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, type Component } from 'vue'
 import { useRoute } from 'vue-router'
 import { UserButton } from '@clerk/vue'
-import { ChevronDownIcon, GraduationCapIcon } from '@lucide/vue'
+import { CalendarIcon, ChevronDownIcon, GraduationCapIcon, UsersIcon } from '@lucide/vue'
 import { ConfirmDialog } from '@/design-system/ui/confirm-dialog'
 import {
   DropdownMenu,
@@ -36,9 +36,33 @@ const navItems: { name: string; label: string; permission: Permission }[] = [
   { name: 'teaching-units', label: 'UE', permission: 'curriculum.view' },
   { name: 'scores', label: 'Notes', permission: 'scores.manage-own' },
   { name: 'decisions', label: 'Résultats', permission: 'results.view' },
-  { name: 'academic-year', label: 'Année', permission: 'academic-years.manage' },
 ]
 const visibleNavItems = computed(() => navItems.filter((item) => can(item.permission)))
+
+const adminItems: {
+  name: string
+  label: string
+  description: string
+  icon: Component
+  permission: Permission
+}[] = [
+  {
+    name: 'academic-year',
+    label: 'Année universitaire',
+    description: 'Calcul des résultats, bascule',
+    icon: CalendarIcon,
+    permission: 'academic-years.manage',
+  },
+  {
+    name: 'users',
+    label: 'Utilisateurs',
+    description: 'Comptes, matières des enseignants',
+    icon: UsersIcon,
+    permission: 'users.manage',
+  },
+]
+const visibleAdminItems = computed(() => adminItems.filter((item) => can(item.permission)))
+const isAdminActive = computed(() => adminItems.some((item) => item.name === activeNav.value))
 
 /** Niveau demandé alors que la page a des modifications non enregistrées : attend la confirmation. */
 const pendingLevel = ref<Level | null>(null)
@@ -86,6 +110,29 @@ function confirmLevelChange() {
           >
             {{ item.label }}
           </RouterLink>
+          <DropdownMenu v-if="visibleAdminItems.length > 0">
+            <DropdownMenuTrigger
+              class="flex items-center gap-1.5 border-b-4 px-3.5 py-2.5 text-sm font-bold whitespace-nowrap transition-colors duration-100"
+              :class="
+                isAdminActive
+                  ? 'border-accent text-foreground'
+                  : 'border-transparent text-foreground/70 hover:border-accent/40 hover:text-foreground'
+              "
+            >
+              Administration <ChevronDownIcon class="size-3.5" />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" class="w-72">
+              <DropdownMenuItem v-for="item in visibleAdminItems" :key="item.name" as-child>
+                <RouterLink :to="{ name: item.name }" class="flex items-start gap-3 text-foreground no-underline">
+                  <component :is="item.icon" class="mt-0.5 size-4.5 shrink-0" />
+                  <span class="flex flex-col gap-0.5">
+                    <span class="text-sm font-bold">{{ item.label }}</span>
+                    <span class="text-xs text-muted-foreground">{{ item.description }}</span>
+                  </span>
+                </RouterLink>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </nav>
         <span class="h-8 w-px shrink-0 bg-border" />
 
