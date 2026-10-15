@@ -25,14 +25,14 @@ testApiCalls([
       }),
     BODY.data,
   ],
-  ['PUT /scores/4 {"score":null}', () => updateScore(4, null), BODY.data],
+  ['PATCH /scores/4 {"score":null}', () => updateScore(4, null), BODY.data],
   ['DELETE /scores/4', () => deleteScore(4)],
   [
     'GET /scores/latest?student_id=7&subject_id=3&session=2&across_all_years=0',
     () => fetchCurrentYearRetakeScore(7, 3),
     BODY.data,
   ],
-  ['POST /scores/4/deliberate {"score":10}', () => deliberateScore(4, 10), BODY.data],
+  ['PUT /scores/4/deliberation {"score":10}', () => deliberateScore(4, 10), BODY.data],
 ])
 
 it('reads a 404 as no retake score this year', async () => {
