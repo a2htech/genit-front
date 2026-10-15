@@ -45,14 +45,15 @@ Fill in `.env`:
 
 ## Scripts
 
-| Command         | What it does                                                 |
-| --------------- | ------------------------------------------------------------ |
-| `bun dev`       | dev server with hot reload                                   |
-| `bun run build` | type-check (`vue-tsc`) then production build                 |
-| `bun preview`   | serve the production build locally                           |
-| `bun check`     | oxlint + ESLint + Prettier, read-only — this is what CI runs |
-| `bun lint`      | oxlint then ESLint, with `--fix`                             |
-| `bun format`    | Prettier over `src/`                                         |
+| Command         | What it does                                                                      |
+| --------------- | --------------------------------------------------------------------------------- |
+| `bun dev`       | dev server with hot reload                                                        |
+| `bun run build` | type-check (`vue-tsc`) then production build                                      |
+| `bun preview`   | serve the production build locally                                                |
+| `bun check`     | oxlint + ESLint + Prettier, read-only, then the unit tests — this is what CI runs |
+| `bun test`      | unit tests with Bun's built-in runner, add `--watch` to rerun on save             |
+| `bun lint`      | oxlint then ESLint, with `--fix`                                                  |
+| `bun format`    | Prettier over `src/`                                                              |
 
 A Husky pre-commit hook runs `lint-staged` (oxlint, ESLint, Prettier) on staged files.
 
@@ -69,8 +70,8 @@ src/
 Dependencies flow one way only: `features -> shared -> design-system`. A feature imports another
 feature through its `index.ts` and nothing else.
 
-Each feature keeps flat, prefixed files: `<name>.types.ts`, `<name>.api.ts`, `<name>.queries.ts`,
-`<name>.routes.ts`, `index.ts`, plus its `.vue` pages and components.
+Each feature keeps flat, prefixed files: `<name>.types.ts`, `<name>.api.ts`, `<name>.api.spec.ts`,
+`<name>.queries.ts`, `<name>.routes.ts`, `index.ts`, plus its `.vue` pages and components.
 
 ## Design system
 
@@ -84,8 +85,12 @@ npx shadcn-vue@latest add <component>
 
 ## Testing
 
-There is no automated test suite on the front end. Changes are verified by running `bun dev`,
-and `/ds` for design system work. `bun check` and `bun run build` must both pass.
+Unit tests (`bun test`) cover only the HTTP contract with the API. Each `<name>.api.spec.ts` has one
+line per call: the request it sends (`METHOD /url?query body`) and what it returns. When a back-end
+route changes, update its line first, then the `.api.ts` file.
+
+Everything else is checked by hand in `bun dev`, and on `/ds` for design system work.
+`bun check` (which runs the tests) and `bun run build` must both pass.
 
 ## License
 

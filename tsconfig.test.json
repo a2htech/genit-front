@@ -1,0 +1,10 @@
+{
+  "extends": "./tsconfig.app.json",
+  "include": ["env.d.ts", "src/**/*.spec.ts", "src/shared/api/testing.ts"],
+  "exclude": [],
+  "compilerOptions": {
+    // Types de bun:test, qui amènent aussi les globals Node et Bun : réservés aux specs.
+    "types": ["bun"],
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.test.tsbuildinfo"
+  }
+}
