@@ -6,7 +6,7 @@ export interface Subject {
   credit: number
   hourly_vol: number
   teaching_unit_id: number
-  /** `clerk_id` de l'enseignant affecté, comparable à celui de `GET /user`. */
+  /** `clerk_id` de l'enseignant affecté, comparable à celui de `GET /me`. */
   user_id: string | null
   /** Nom lu dans Clerk par le back ; champs `null` si Clerk n'a pas répondu. */
   teacher: { first_name: string | null; last_name: string | null } | null

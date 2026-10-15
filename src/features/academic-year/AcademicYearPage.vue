@@ -157,6 +157,9 @@ async function confirmSwitch() {
     </Card>
 
     <Alert v-if="calculateErrorMessage" variant="destructive" class="mb-6">{{ calculateErrorMessage }}</Alert>
+    <Alert v-else-if="calculateMutation.data.value === false" class="mb-6">
+      Le calcul se poursuit en arrière-plan : rechargez la page dans un moment pour voir les décisions.
+    </Alert>
 
     <h2 class="mb-3 font-heading text-lg font-extrabold">Résumé des décisions</h2>
     <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">

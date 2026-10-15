@@ -9,7 +9,7 @@ it('sends the Clerk token as a Bearer header', async () => {
     authorization = config.headers.Authorization
     return {}
   })
-  await apiClient.get('/user')
+  await apiClient.get('/me')
   expect(authorization).toBe('Bearer jwt')
 })
 

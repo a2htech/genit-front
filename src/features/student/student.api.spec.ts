@@ -13,18 +13,18 @@ import type { StudentFormValues } from './student.types'
 testApiCalls([
   ['GET /students?class=L2&per_page=100&page=1', () => fetchStudents('L2'), BODY.data],
   [
-    'GET /students/archived?page=1&per_page=25',
+    'GET /students?archived=1&page=1&per_page=25',
     () => fetchArchivedStudents({ page: 1, name: ' ', level: 'all' }),
     BODY,
   ],
   [
-    'GET /students/archived?page=2&per_page=25&name=Rabe&class=L3',
+    'GET /students?archived=1&page=2&per_page=25&name=Rabe&class=L3',
     () => fetchArchivedStudents({ page: 2, name: ' Rabe ', level: 'L3' }),
     BODY,
   ],
   ['GET /students/7', () => fetchStudent(7), BODY.data],
   ['POST /students {"first_name":"Rabe"}', () => createStudent({ first_name: 'Rabe' } as StudentFormValues), BODY.data],
-  ['PUT /students/7 {"registered":true}', () => updateStudent(7, { registered: true }), BODY.data],
+  ['PATCH /students/7 {"registered":true}', () => updateStudent(7, { registered: true }), BODY.data],
   ['DELETE /students/7', () => deleteStudent(7)],
 ])
 

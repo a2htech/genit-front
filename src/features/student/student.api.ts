@@ -15,9 +15,10 @@ export async function fetchStudents(level: Level): Promise<Student[]> {
 
 /** Pas d'ORDER BY côté back : l'ordre d'une page à l'autre n'est pas garanti. */
 export async function fetchArchivedStudents(filters: ArchivedStudentFilters): Promise<LaravelPage<Student>> {
-  const { data } = await apiClient.get<LaravelPage<Student>>('/students/archived', {
-    // Un paramètre à undefined n'est pas envoyé par axios.
+  const { data } = await apiClient.get<LaravelPage<Student>>('/students', {
+    // Un paramètre à undefined n'est pas envoyé par axios ; `archived=true` serait refusé (422).
     params: {
+      archived: 1,
       page: filters.page,
       per_page: 25,
       name: filters.name.trim() || undefined,
@@ -38,7 +39,7 @@ export async function createStudent(payload: StudentFormValues): Promise<Student
 }
 
 export async function updateStudent(id: number, payload: StudentUpdatePayload): Promise<Student> {
-  const { data } = await apiClient.put<{ data: Student }>(`/students/${id}`, payload)
+  const { data } = await apiClient.patch<{ data: Student }>(`/students/${id}`, payload)
   return data.data
 }
 

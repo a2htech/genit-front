@@ -78,7 +78,6 @@ async function save() {
   errorMessage.value = null
   try {
     if (props.student) {
-      // `phone` est `required` (pas `sometimes`) côté back : le payload part toujours complet.
       await updateMutation.mutateAsync({
         id: props.student.id,
         payload: { ...form, registered: registered.value },
