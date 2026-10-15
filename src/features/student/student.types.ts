@@ -49,14 +49,12 @@ export interface Student {
   class_year: number
   state: AcademicStatusCode
   expired: boolean
-  /** L'étudiant ne fait plus partie du cursus (diplômé ou renvoyé), pas "redoublant". */
-  old: boolean
   registered: boolean
   created_at: string | null
   updated_at: string | null
 }
 
-/** Un étudiant est toujours créé en L1 ; class/class_year/state/old sont système, jamais saisis ici. */
+/** Un étudiant est toujours créé en L1 ; class/class_year/state sont système, jamais saisis ici. */
 export interface StudentFormValues {
   first_name: string
   last_name: string
