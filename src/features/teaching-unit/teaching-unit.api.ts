@@ -15,7 +15,7 @@ export async function createSubject(payload: SubjectFormValues): Promise<Subject
 }
 
 export async function updateSubject(id: number, payload: SubjectUpdatePayload): Promise<Subject> {
-  const { data } = await apiClient.put<{ data: Subject }>(`/subjects/${id}`, payload)
+  const { data } = await apiClient.patch<{ data: Subject }>(`/subjects/${id}`, payload)
   return data.data
 }
 

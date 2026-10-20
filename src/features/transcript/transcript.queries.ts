@@ -1,5 +1,6 @@
 import { type Ref, computed } from 'vue'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
+import { promiseTimeout } from '@vueuse/core'
 import { useContextStore, type Level } from '@/features/academic-year'
 import {
   calculateAllAnnualResults,
@@ -78,11 +79,30 @@ export function useMissingAnnualResultsQuery() {
   })
 }
 
-/** Recalcule tous les niveaux ; invalide toute clé 'annual-results' (missing + listes par niveau). */
+const CALCULATION_POLL_MS = 3_000
+const CALCULATION_TIMEOUT_MS = 60_000
+
+/** Le calcul part en file (202) : on relit les manquants jusqu'à ce qu'il n'y en ait plus, une minute
+ *  au plus. Renvoie `false` si le calcul tourne encore. */
 export function useCalculateAllAnnualResultsMutation() {
   const queryClient = useQueryClient()
+  // staleTime 0 force la relecture, qui met aussi à jour le compteur affiché par la page.
+  const fetchMissing = () =>
+    queryClient.fetchQuery({
+      queryKey: missingAnnualResultsKey,
+      queryFn: fetchStudentsMissingAnnualResults,
+      staleTime: 0,
+    })
   return useMutation({
-    mutationFn: calculateAllAnnualResults,
+    mutationFn: async () => {
+      await calculateAllAnnualResults()
+      const deadline = Date.now() + CALCULATION_TIMEOUT_MS
+      while ((await fetchMissing()).length > 0) {
+        if (Date.now() >= deadline) return false
+        await promiseTimeout(CALCULATION_POLL_MS)
+      }
+      return true
+    },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['annual-results'] }),
   })
 }

@@ -33,7 +33,7 @@ export async function storeScoresForSubject(payload: StoreScoresPayload): Promis
 }
 
 export async function updateScore(id: number, score: number | null): Promise<Score> {
-  const { data } = await apiClient.put<{ data: Score }>(`/scores/${id}`, { score })
+  const { data } = await apiClient.patch<{ data: Score }>(`/scores/${id}`, { score })
   return data.data
 }
 
@@ -61,6 +61,6 @@ export async function fetchCurrentYearRetakeScore(studentId: number, subjectId: 
 
 /** Remplace `score` et laisse `original` intact ; le back recalcule le résultat de la matière. */
 export async function deliberateScore(id: number, score: number): Promise<Score> {
-  const { data } = await apiClient.post<{ data: Score }>(`/scores/${id}/deliberate`, { score })
+  const { data } = await apiClient.put<{ data: Score }>(`/scores/${id}/deliberation`, { score })
   return data.data
 }
