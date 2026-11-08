@@ -270,7 +270,7 @@ async function exportPdf() {
           <tbody>
             <tr v-for="subj in ue.subjects" :key="subj.id" class="border-b border-border/30 last:border-b-0">
               <td class="px-3.5 py-2 text-[13px]">{{ subj.name }}</td>
-              <td class="px-3.5 py-2 text-xs text-muted-foreground">coef. {{ subj.coefficient }}</td>
+              <td class="px-3.5 py-2 text-xs text-muted-foreground">{{ subj.credits }} cr.</td>
               <td
                 v-for="cell in scoreCells(subj)"
                 :key="cell.key"
