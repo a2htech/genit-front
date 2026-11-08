@@ -23,14 +23,21 @@ export const MENTION_LABEL_FR: Record<Mention, string> = {
   VTB: 'Validé Très Bien',
 }
 
+/** `score` null : aucune note si `absent` est faux, ABS (note enregistrée à vide) sinon. */
+export interface TranscriptScore {
+  score: number | null
+  original: number | null
+  absent: boolean
+}
+
 export interface TranscriptSubject {
   id: number
   name: string
   hourlyVolume: number
   credits: number
   coefficient: number
-  regularSession: { score: number | null; original: number | null }
-  retakeSession: { score: number | null; original: number | null }
+  regularSession: TranscriptScore
+  retakeSession: TranscriptScore
 }
 
 export interface TranscriptSessionResult {

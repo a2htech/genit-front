@@ -277,7 +277,8 @@ async function exportPdf() {
                 class="w-25 px-3.5 py-2 text-[13px] font-bold whitespace-nowrap"
               >
                 <div class="flex items-center justify-end gap-1.5">
-                  <span :class="isFailingScore(cell.score) ? 'text-destructive' : ''">
+                  <span v-if="cell.absent" class="text-destructive">{{ cell.prefix }}: ABS</span>
+                  <span v-else-if="cell.score !== null" :class="isFailingScore(cell.score) ? 'text-destructive' : ''">
                     {{ cell.prefix }}: {{ formatScore(cell.score) }}
                   </span>
                   <template v-if="isDeliberated(cell)">
