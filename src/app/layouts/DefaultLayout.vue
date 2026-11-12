@@ -2,7 +2,7 @@
 import { computed, ref, type Component } from 'vue'
 import { useRoute } from 'vue-router'
 import { UserButton } from '@clerk/vue'
-import { CalendarIcon, ChevronDownIcon, GraduationCapIcon, UsersIcon } from '@lucide/vue'
+import { CalendarIcon, ChevronDownIcon, ClipboardXIcon, GraduationCapIcon, UsersIcon } from '@lucide/vue'
 import { ConfirmDialog } from '@/design-system/ui/confirm-dialog'
 import {
   DropdownMenu,
@@ -59,6 +59,13 @@ const adminItems: {
     description: 'Comptes, matières des enseignants',
     icon: UsersIcon,
     permission: 'users.manage',
+  },
+  {
+    name: 'forced-results',
+    label: 'Résultats forcés',
+    description: 'Dettes sans note retrouvée',
+    icon: ClipboardXIcon,
+    permission: 'results.force',
   },
 ]
 const visibleAdminItems = computed(() => adminItems.filter((item) => can(item.permission)))

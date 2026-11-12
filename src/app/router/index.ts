@@ -7,6 +7,7 @@ import { transcriptRoutes } from '@/features/transcript'
 import { studentRoutes } from '@/features/student'
 import { teachingUnitRoutes } from '@/features/teaching-unit'
 import { scoreRoutes } from '@/features/score'
+import { subjectResultRoutes } from '@/features/subject-result'
 import { userRoutes } from '@/features/user'
 
 const routes: RouteRecordRaw[] = [
@@ -27,6 +28,7 @@ const routes: RouteRecordRaw[] = [
   ...teachingUnitRoutes,
   ...scoreRoutes,
   ...transcriptRoutes,
+  ...subjectResultRoutes,
   ...userRoutes,
   ...(import.meta.env.DEV
     ? [
