@@ -10,6 +10,7 @@ export type Permission =
   | 'transcripts.view'
   | 'results.view'
   | 'results.calculate'
+  | 'results.force'
   | 'scores.view-all'
   | 'scores.manage-own'
   | 'scores.manage-all'
